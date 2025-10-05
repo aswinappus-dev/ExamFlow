@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Login Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- If you move CSS/JS to static folder -->
+  <link rel="stylesheet" th:href="@{/css/style.css}" />
+  <script th:src="@{/js/script.js}" defer></script>
+
+  <style>
+    /* Inlined CSS for now or put in /static/css/style.css */
+  </style>
+</head>
+<body>
+
+  <div class="sidebar" id="sidebar">
+    <a th:href="@{/admin}">🔐 Login as Admin</a>
+    <a th:href="@{/support}">🛠️ Support</a>
+  </div>
+
+  <div class="menu-toggle" onclick="toggleSidebar()">
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+
+  <div class="card">
+    <h1>Welcome, Please Login</h1>
+    <div class="login-buttons">
+      <button class="login-button" th:onclick="'location.href=\'' + @{/studentdashboard} + '\''">Login as Student</button>
+      <button class="login-button" th:onclick="'location.href=\'' + @{/invigilatordashboard} + '\''">Login as Invigilator</button>
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("active");
+    }
+  </script>
+
+</body>
+</html>

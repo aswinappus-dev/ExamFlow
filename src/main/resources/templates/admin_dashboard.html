@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <style>
+        body {
+            background: #0f2027;
+            color: #00ffe1;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1, h2 {
+            text-shadow: 0 0 10px #00ffe1;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }
+        th, td {
+            border: 1px solid #00bfa6;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #00bfa6;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Admin Dashboard</h1>
+
+<!-- Students Table -->
+<h2>Students</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Register No</th>
+            <th>Student Name</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:each="student : ${students}">
+            <td th:text="${student.registerNo}"></td>
+            <td th:text="${student.studentName}"></td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Exam Halls Table -->
+<h2>Exam Halls</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Hall No</th>
+            <th>Capacity</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:each="hall : ${halls}">
+            <td th:text="${hall.hallNo}"></td>
+            <td th:text="${hall.capacity}"></td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Exam Schedules Table -->
+<h2>Exam Schedules</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Exam Name</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Randomization Confirmed</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:each="schedule : ${schedules}">
+            <td th:text="${schedule.examName}"></td>
+            <td th:text="${#temporals.format(schedule.slotStartTime, 'yyyy-MM-dd HH:mm')}"></td>
+            <td th:text="${#temporals.format(schedule.slotEndTime, 'yyyy-MM-dd HH:mm')}"></td>
+            <td th:text="${schedule.randomizationConfirmed}"></td>
+        </tr>
+    </tbody>
+</table>
+
+</body>
+</html>

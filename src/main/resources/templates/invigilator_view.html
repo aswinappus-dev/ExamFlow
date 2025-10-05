@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Invigilator Dashboard</title>
+    <style>
+        body {
+            background: #0f2027;
+            color: #00ffe1;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+        }
+        h1 {
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #00ffe1;
+        }
+        select, button {
+            padding: 10px 15px;
+            font-size: 18px;
+            border-radius: 5px;
+            border: none;
+            margin: 10px;
+        }
+        button {
+            background-color: #00ffe1;
+            color: #000;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #00bfa6;
+        }
+        .output {
+            margin-top: 30px;
+            font-size: 18px;
+            text-align: left;
+            max-width: 500px;
+            animation: fadeIn 1s ease-in;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #00bfa6;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #00bfa6;
+            color: #000;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<h1>Invigilator Hall Assignment</h1>
+
+<form th:action="@{/invigilator/view-hall}" method="post">
+    <label for="examhallNo">Select Hall:</label>
+    <select id="examhallNo" name="examhallNo">
+        <option th:each="hall : ${halls}"
+                th:value="${hall.hallNo}"
+                th:text="${hall.hallNo}"
+                th:selected="${hall.hallNo == selectedHall}">
+        </option>
+    </select>
+    <button type="submit">View Layout</button>
+</form>
+
+<div class="output" th:if="${students}">
+    <h2 th:text="'Seating for Hall ' + ${selectedHall}"></h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Register No</th>
+                <th>Block No</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="student : ${students}">
+                <td th:text="${student.registerNo}"></td>
+                <td th:text="${student.blockNo}"></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>
