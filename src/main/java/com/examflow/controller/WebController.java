@@ -1,22 +1,19 @@
 package com.examflow.controller;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.examflow.model.ExamHall;
 import com.examflow.model.ExamSchedule;
-import com.examflow.model.StudRand;
 import com.examflow.model.Student;
 import com.examflow.service.SeatingService;
+
+import jakarta.servlet.http.HttpSession;
 
 @Controller
 public class WebController {
@@ -25,98 +22,82 @@ public class WebController {
     private SeatingService seatingService;
 
     @GetMapping("/")
-    public String index() { return "index"; }
-
-    @GetMapping("/student")
-    public String studentPortal() { return "studentView"; }
-
-    @PostMapping("/student/hall")
-    public String showStudentHall(@RequestParam String registerNo, Model model) {
-        Optional<StudRand> arrangement = seatingService.findArrangementByRegisterNo(registerNo);
-        Optional<ExamSchedule> scheduleOpt = seatingService.findNextExam(); // Corrected call
-
-        if (scheduleOpt.isPresent()) {
-            ExamSchedule schedule = scheduleOpt.get();
-            if (LocalDateTime.now().isAfter(schedule.getSlotStartTime().minusHours(2))) {
-                if (arrangement.isPresent()) {
-                    model.addAttribute("arrangement", arrangement.get());
-                } else {
-                    model.addAttribute("message", "Register number not found.");
-                }
-            } else {
-                model.addAttribute("message", "Arrangement revealed 2 hours before exam.");
-            }
-        } else {
-            model.addAttribute("message", "No upcoming exam found.");
-        }
-        return "studentView";
+    public String home(Model model) {
+        model.addAttribute("initialView", "home-view");
+        model.addAttribute("allHalls", seatingService.getAllHalls());
+        return "index";
     }
 
-    // ... (rest of the controller remains the same)
-    @GetMapping("/invigilator")
-    public String invigilatorPortal(Model model) {
-        model.addAttribute("halls", seatingService.getAllExamHalls());
-        return "invigilatorView";
+    @PostMapping("/student")
+    public String handleStudentRequest(@RequestParam String registerNo, Model model) {
+        model.addAttribute("studentResult", seatingService.getStudentArrangement(registerNo));
+        model.addAttribute("initialView", "student-view");
+        return "index";
     }
 
-    @PostMapping("/invigilator/hall")
-    public String showInvigilatorHall(@RequestParam String examhallNo, Model model) {
-        model.addAttribute("arrangements", seatingService.findArrangementsByHallNo(examhallNo));
+    @PostMapping("/invigilator")
+    public String handleInvigilatorRequest(@RequestParam String examhallNo, Model model) {
+        model.addAttribute("invigilatorResult", seatingService.getHallArrangement(examhallNo));
+        model.addAttribute("allHalls", seatingService.getAllHalls());
         model.addAttribute("selectedHall", examhallNo);
-        model.addAttribute("halls", seatingService.getAllExamHalls());
-        return "invigilatorView";
+        model.addAttribute("initialView", "invigilator-view");
+        return "index";
     }
 
     @GetMapping("/admin")
-    public String adminDashboard(Model model) {
-        model.addAttribute("students", seatingService.getAllStudents());
-        model.addAttribute("halls", seatingService.getAllExamHalls());
-        model.addAttribute("schedules", seatingService.getAllSchedules());
-        model.addAttribute("newStudent", new Student());
-        model.addAttribute("newHall", new ExamHall());
-        model.addAttribute("newSchedule", new ExamSchedule());
-        return "adminView";
+    public String adminPortal(Model model, HttpSession session) {
+        if (session.getAttribute("isAdmin") != null && (Boolean) session.getAttribute("isAdmin")) {
+            model.addAttribute("allStudents", seatingService.getAllStudents());
+            model.addAttribute("allHalls", seatingService.getAllHalls());
+            model.addAttribute("allSchedules", seatingService.getAllSchedules());
+            model.addAttribute("nextExam", seatingService.findNextExam().orElse(null));
+            return "admin_dashboard";
+        } else {
+            model.addAttribute("initialView", "admin-login-view");
+            return "index";
+        }
     }
-
-    @PostMapping("/admin/student/add")
-    public String addStudent(@ModelAttribute Student newStudent, RedirectAttributes redirectAttributes) {
-        seatingService.addStudent(newStudent);
-        redirectAttributes.addFlashAttribute("message", "Student added!");
+    
+    @PostMapping("/admin/send-code")
+    public String sendAdminCode(@RequestParam String email, HttpSession session, RedirectAttributes redirectAttributes) {
+        boolean wasSent = seatingService.generateAndStoreVerificationCode(session, email);
+        if (wasSent) {
+            redirectAttributes.addFlashAttribute("showCodeForm", true);
+        } else {
+            redirectAttributes.addFlashAttribute("adminLoginError", "This email is not registered as an administrator.");
+        }
         return "redirect:/admin";
     }
 
-    @PostMapping("/admin/student/delete")
-    public String deleteStudent(@RequestParam String registerNo, RedirectAttributes redirectAttributes) {
-        seatingService.deleteStudent(registerNo);
-        redirectAttributes.addFlashAttribute("message", "Student deleted!");
-        return "redirect:/admin";
-    }
-
-    @PostMapping("/admin/hall/add")
-    public String addHall(@ModelAttribute ExamHall newHall, RedirectAttributes redirectAttributes) {
-        seatingService.addExamHall(newHall);
-        redirectAttributes.addFlashAttribute("message", "Hall added!");
+    @PostMapping("/admin/verify-code")
+    public String verifyAdminCode(@RequestParam String code, HttpSession session, RedirectAttributes redirectAttributes) {
+        if (!seatingService.verifyAdminCode(session, code)) {
+            redirectAttributes.addFlashAttribute("adminLoginError", "Invalid or expired code.");
+            redirectAttributes.addFlashAttribute("showCodeForm", true);
+        }
         return "redirect:/admin";
     }
     
-    @PostMapping("/admin/hall/delete")
-    public String deleteHall(@RequestParam String examhallNo, RedirectAttributes redirectAttributes) {
-        seatingService.deleteExamHall(examhallNo);
-        redirectAttributes.addFlashAttribute("message", "Hall deleted!");
+    @PostMapping("/admin/logout")
+    public String adminLogout(HttpSession session) { session.invalidate(); return "redirect:/"; }
+    
+    @PostMapping("/admin/addStudent")
+    public String addStudent(@RequestParam String registerNo) {
+        Student s = new Student(); s.setRegisterNo(registerNo); seatingService.addStudent(s);
         return "redirect:/admin";
     }
-
-    @PostMapping("/admin/schedule/add")
-    public String addSchedule(@ModelAttribute ExamSchedule newSchedule, RedirectAttributes redirectAttributes) {
-        seatingService.addSchedule(newSchedule);
-        redirectAttributes.addFlashAttribute("message", "Schedule added!");
-        return "redirect:/admin";
-    }
-
-    @PostMapping("/admin/schedule/confirm")
-    public String confirmSchedule(@RequestParam Long scheduleId, RedirectAttributes redirectAttributes) {
-        seatingService.confirmSchedule(scheduleId);
-        redirectAttributes.addFlashAttribute("message", "Schedule confirmed!");
+    @PostMapping("/admin/deleteStudent")
+    public String deleteStudent(@RequestParam String registerNo) { seatingService.deleteStudent(registerNo); return "redirect:/admin"; }
+    @PostMapping("/admin/addHall")
+    public String addHall(ExamHall h) { seatingService.addHall(h); return "redirect:/admin"; }
+    @PostMapping("/admin/deleteHall")
+    public String deleteHall(@RequestParam String examhallNo) { seatingService.deleteHall(examhallNo); return "redirect:/admin"; }
+    @PostMapping("/admin/addSchedule")
+    public String addSchedule(ExamSchedule s) { seatingService.addSchedule(s); return "redirect:/admin"; }
+    @PostMapping("/admin/confirmRandomization")
+    public String confirmRandomization(@RequestParam Integer scheduleId, RedirectAttributes ra) {
+        seatingService.confirmRandomization(scheduleId);
+        ra.addFlashAttribute("confirmationSuccess", true);
         return "redirect:/admin";
     }
 }

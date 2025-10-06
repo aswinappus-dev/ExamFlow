@@ -1,6 +1,7 @@
 package com.examflow.repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,15 +10,12 @@ import org.springframework.stereotype.Repository;
 import com.examflow.model.ExamSchedule;
 
 @Repository
-public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Long> {
+// CORRECTED: The ID type is now Integer to match your ExamSchedule.java entity.
+public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Integer> {
 
-    /**
-     * Finds the next upcoming exam schedule that has been confirmed for randomization
-     * and is scheduled to start after the current time. It returns the one with the
-     * earliest start time.
-     * * @param currentTime The current time to check against.
-     * @return An Optional containing the next confirmed ExamSchedule, or empty if none is found.
-     */
     Optional<ExamSchedule> findFirstByRandomizationConfirmedIsTrueAndSlotStartTimeIsAfterOrderBySlotStartTimeAsc(LocalDateTime currentTime);
+    
+    // ADDED: This method is required by the SeatingService for cleanup.
+    List<ExamSchedule> findBySlotEndTimeBefore(LocalDateTime time);
 }
 

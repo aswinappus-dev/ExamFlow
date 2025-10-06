@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExamFlow - Seating Arrangement</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        .main-container { background: radial-gradient(circle at top, #1e293b 30%, #0f172a 100%); min-height: 100vh; }
+        .glass-card { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(51, 65, 85, 0.5); border-radius: 1.5rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+        .btn-3d { position: relative; border: none; transition: all 0.2s ease-in-out; border-radius: 12px; color: white; padding: 1rem 2rem; font-weight: 600; cursor: pointer; transform-style: preserve-3d; box-shadow: 0 5px 0 #475569; }
+        .btn-3d:hover { transform: translateY(2px); box-shadow: 0 3px 0 #475569; }
+        .btn-3d:active { transform: translateY(5px); box-shadow: 0 0 0 #475569; }
+        .btn-glow { box-shadow: 0 0 5px #67e8f9, 0 0 10px #67e8f9, 0 0 15px #22d3ee, 0 0 20px #22d3ee; }
+        .sidebar { transition: transform 0.3s ease-in-out; transform: translateX(-100%); z-index: 50; }
+        .sidebar-open { transform: translateX(0); }
+        .hidden-view { display: none; }
+        .hamburger { cursor: pointer; width: 24px; height: 24px; transition: all 0.25s; position: relative; }
+        .hamburger__bar { position: absolute; width: 24px; height: 3px; background-color: #e2e8f0; border-radius: 2px; transition: all 0.25s; }
+        .bar-1 { top: 0; } .bar-2 { top: 10px; } .bar-3 { top: 20px; }
+        .hamburger.is-active .bar-1 { transform: rotate(45deg) translate(8px, 8px); }
+        .hamburger.is-active .bar-2 { opacity: 0; }
+        .hamburger.is-active .bar-3 { transform: rotate(-45deg) translate(7px, -6px); }
+        .sidebar-logo, .sidebar nav { transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; opacity: 0; transform: translateY(-15px); }
+        .sidebar-open .sidebar-logo { opacity: 1; transform: translateY(0); transition-delay: 0.2s; }
+        .sidebar-open nav { opacity: 1; transform: translateY(0); transition-delay: 0.3s; }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar fixed top-0 left-0 h-full w-64 glass-card p-6">
+        <h2 class="sidebar-logo text-2xl font-bold text-cyan-300 mb-8">ExamFlow</h2>
+        <nav class="flex flex-col space-y-4">
+            <a href="#" onclick="showView('home-view')" class="text-slate-300 hover:text-cyan-300 transition">Home</a>
+            <a th:href="@{/admin}" class="text-slate-300 hover:text-cyan-300 transition">Admin Panel</a>
+            <a href="#" onclick="closeSidebar()" class="text-slate-300 hover:text-cyan-300 transition">About</a>
+            <a href="#" onclick="closeSidebar()" class="text-slate-300 hover:text-cyan-300 transition">Support</a>
+        </nav>
+    </div>
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+
+    <div class="main-container p-4 sm:p-8">
+        <header class="flex justify-between items-center mb-16">
+            <button id="hamburger-button" onclick="toggleSidebar()" class="hamburger z-50">
+                <span class="hamburger__bar bar-1"></span><span class="hamburger__bar bar-2"></span><span class="hamburger__bar bar-3"></span>
+            </button>
+            <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-500">ExamFlow</h1>
+            <div></div> <!-- Spacer -->
+        </header>
+
+        <main id="content-area" class="w-full max-w-5xl mx-auto">
+
+            <!-- Home View -->
+            <section id="home-view" class="">
+                 <div class="text-center">
+                    <h2 class="text-5xl sm:text-7xl font-bold mb-6">Welcome</h2>
+                    <p class="text-lg text-slate-400 mb-12">The seamless solution for exam seating.</p>
+                    <div class="flex flex-col sm:flex-row justify-center items-center gap-6">
+                        <button onclick="showView('student-view')" class="btn-3d bg-cyan-500 btn-glow w-full sm:w-auto">I'm a Student</button>
+                        <button onclick="showView('invigilator-view')" class="btn-3d bg-blue-600 w-full sm:w-auto">I'm an Invigilator</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Student View -->
+            <section id="student-view" class="hidden-view">
+                <div class="glass-card p-8 max-w-md mx-auto">
+                    <h2 class="text-3xl font-bold text-center text-cyan-300 mb-6">Find Your Seat</h2>
+                    <form th:action="@{/student}" method="post">
+                        <input type="text" name="registerNo" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 mb-4" placeholder="e.g., CEC22AD001" required>
+                        <button type="submit" class="btn-3d bg-cyan-500 w-full btn-glow">Confirm</button>
+                    </form>
+                    <div th:if="${studentResult}" class="mt-8 text-center p-6 bg-slate-900/50 rounded-lg">
+                        <p th:if="${studentResult.message}" th:text="${studentResult.message}" class="text-lg text-amber-400"></p>
+                        <div th:if="${studentResult.arrangement}">
+                             <h3 class="text-slate-400 text-lg">Hall: <strong class="text-2xl text-cyan-300" th:text="${studentResult.arrangement.examhallNo}"></strong></h3>
+                             <h3 class="text-slate-400 text-lg mt-2">Seat: <strong class="text-2xl text-cyan-300" th:text="${studentResult.arrangement.id}"></strong></h3>
+                        </div>
+                        <button onclick="window.location.href='/'" class="mt-6 text-sm text-cyan-400 hover:underline">Return to Home</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Invigilator View -->
+            <section id="invigilator-view" class="hidden-view">
+                 <div class="glass-card p-8 max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-center text-blue-400 mb-6">Invigilator Dashboard</h2>
+                    <form th:action="@{/invigilator}" method="post">
+                        <select name="examhallNo" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 mb-4">
+                           <option th:each="hall : ${allHalls}" th:value="${hall.examhallNo}" th:text="${hall.examhallNo} + ' - Block: ' + ${hall.blockno}"></option>
+                        </select>
+                        <button type="submit" class="btn-3d bg-blue-600 w-full">Fetch Arrangement</button>
+                    </form>
+                    <div th:if="${invigilatorResult}" class="mt-8">
+                        <p th:if="${invigilatorResult.message}" th:text="${invigilatorResult.message}" class="text-lg text-amber-400 text-center"></p>
+                        <div th:if="${invigilatorResult.arrangements}">
+                            <h3 class="text-2xl font-bold text-center mb-6">Layout: Hall <span th:text="${selectedHall}"></span></h3>
+                            <div class="grid grid-cols-3 gap-4 text-center">
+                                <div th:each="student : ${invigilatorResult.arrangements}" class="bg-slate-800 p-3 rounded-lg font-mono" th:text="${student.registerNo}"></div>
+                            </div>
+                        </div>
+                        <button onclick="window.location.href='/'" class="mt-8 mx-auto block text-sm text-cyan-400 hover:underline">Return to Home</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Admin Login View -->
+            <section id="admin-login-view" class="hidden-view">
+                <div class="glass-card p-8 max-w-md mx-auto">
+                    <h2 class="text-3xl font-bold text-center text-cyan-300 mb-6">Admin Verification</h2>
+                    
+                    <form id="admin-email-form" th:action="@{/admin/send-code}" method="post">
+                        <p class="text-slate-400 text-center mb-4">Enter your email to receive a verification code.</p>
+                        <input type="email" name="email" class="w-full bg-slate-800 p-3 rounded-lg mb-4" required placeholder="admin@example.com">
+                        <button type="submit" class="btn-3d bg-cyan-600 w-full">Send Code</button>
+                    </form>
+
+                    <form id="admin-code-form" th:action="@{/admin/verify-code}" method="post" class="hidden">
+                         <p class="text-slate-400 text-center mb-4">A code has been sent to your email.</p>
+                         <input type="text" name="code" class="w-full bg-slate-800 p-3 rounded-lg mb-4 tracking-[0.5em] text-center" maxlength="6" required placeholder="------">
+                         <button type="submit" class="btn-3d bg-green-600 w-full">Verify & Enter</button>
+                    </form>
+                    <p th:if="${adminLoginError}" th:text="${adminLoginError}" class="text-red-400 text-center mt-4"></p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script th:inline="javascript">
+        const contentArea = document.getElementById('content-area');
+        const views = contentArea.querySelectorAll('main > section');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const hamburger = document.getElementById('hamburger-button');
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('sidebar-open');
+            sidebarOverlay.classList.toggle('hidden');
+            hamburger.classList.toggle('is-active');
+        }
+        function closeSidebar() {
+            sidebar.classList.remove('sidebar-open');
+            sidebarOverlay.classList.add('hidden');
+            hamburger.classList.remove('is-active');
+        }
+        function showView(viewId) {
+            views.forEach(view => {
+                view.style.display = view.id === viewId ? 'block' : 'none';
+            });
+            closeSidebar();
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const initialView = /*[[|${initialView}|]]*/ 'home-view';
+            const showCodeForm = /*[[|${showCodeForm}|]]*/ false;
+            
+            showView(initialView);
+            
+            if (initialView === 'admin-login-view' && showCodeForm) {
+                 document.getElementById('admin-email-form').classList.add('hidden');
+                 document.getElementById('admin-code-form').classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
+

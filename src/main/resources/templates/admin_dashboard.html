@@ -2,92 +2,77 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - ExamFlow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            background: #0f2027;
-            color: #00ffe1;
-            font-family: Arial, sans-serif;
-            padding: 20px;
-        }
-        h1, h2 {
-            text-shadow: 0 0 10px #00ffe1;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            margin-bottom: 40px;
-        }
-        th, td {
-            border: 1px solid #00bfa6;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #00bfa6;
-            color: #000;
-        }
+        body { font-family: 'Poppins', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        .main-container { background: radial-gradient(circle at top, #1e293b 30%, #0f172a 100%); min-height: 100vh; }
+        .glass-card { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(51, 65, 85, 0.5); border-radius: 1.5rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+        .btn-3d { position: relative; border: none; transition: all 0.2s ease-in-out; border-radius: 12px; color: white; padding: 1rem 2rem; font-weight: 600; cursor: pointer; transform-style: preserve-3d; box-shadow: 0 5px 0 #475569; }
+        .btn-3d:hover { transform: translateY(2px); box-shadow: 0 3px 0 #475569; }
     </style>
 </head>
 <body>
-
-<h1>Admin Dashboard</h1>
-
-<!-- Students Table -->
-<h2>Students</h2>
-<table>
-    <thead>
-        <tr>
-            <th>Register No</th>
-            <th>Student Name</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr th:each="student : ${students}">
-            <td th:text="${student.registerNo}"></td>
-            <td th:text="${student.studentName}"></td>
-        </tr>
-    </tbody>
-</table>
-
-<!-- Exam Halls Table -->
-<h2>Exam Halls</h2>
-<table>
-    <thead>
-        <tr>
-            <th>Hall No</th>
-            <th>Capacity</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr th:each="hall : ${halls}">
-            <td th:text="${hall.hallNo}"></td>
-            <td th:text="${hall.capacity}"></td>
-        </tr>
-    </tbody>
-</table>
-
-<!-- Exam Schedules Table -->
-<h2>Exam Schedules</h2>
-<table>
-    <thead>
-        <tr>
-            <th>Exam Name</th>
-            <th>Start Time</th>
-            <th>End Time</th>
-            <th>Randomization Confirmed</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr th:each="schedule : ${schedules}">
-            <td th:text="${schedule.examName}"></td>
-            <td th:text="${#temporals.format(schedule.slotStartTime, 'yyyy-MM-dd HH:mm')}"></td>
-            <td th:text="${#temporals.format(schedule.slotEndTime, 'yyyy-MM-dd HH:mm')}"></td>
-            <td th:text="${schedule.randomizationConfirmed}"></td>
-        </tr>
-    </tbody>
-</table>
-
+    <div class="main-container p-4 sm:p-8">
+        <div class="glass-card p-8 max-w-5xl mx-auto">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-cyan-300">Admin Dashboard</h2>
+                <form th:action="@{/admin/logout}" method="post">
+                    <button type="submit" class="text-sm text-slate-400 hover:text-white transition-colors">Logout</button>
+                </form>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Manage Students -->
+                <div>
+                    <h3 class="text-xl font-semibold mb-4 text-cyan-400">Manage Students</h3>
+                    <form th:action="@{/admin/addStudent}" method="post" class="space-y-4 p-4 bg-slate-900/50 rounded-lg">
+                        <input type="text" name="registerNo" placeholder="New Register No" class="w-full bg-slate-800 p-2 rounded" required>
+                        <button type="submit" class="btn-3d bg-green-600 w-full text-sm py-2 px-4">Add Student</button>
+                    </form>
+                    <form th:action="@{/admin/deleteStudent}" method="post" class="space-y-4 p-4 mt-4 bg-slate-900/50 rounded-lg">
+                        <select name="registerNo" class="w-full bg-slate-800 p-2 rounded"><option th:each="s : ${allStudents}" th:value="${s.registerNo}" th:text="${s.registerNo}"></option></select>
+                        <button type="submit" class="btn-3d bg-red-600 w-full text-sm py-2 px-4">Delete Student</button>
+                    </form>
+                </div>
+                <!-- Manage Halls -->
+                <div>
+                     <h3 class="text-xl font-semibold mb-4 text-cyan-400">Manage Halls</h3>
+                    <form th:action="@{/admin/addHall}" method="post" class="space-y-4 p-4 bg-slate-900/50 rounded-lg">
+                        <input type="text" name="examhallNo" placeholder="Hall No" class="w-full bg-slate-800 p-2 rounded" required>
+                        <input type="number" name="capacity" placeholder="Capacity" class="w-full bg-slate-800 p-2 rounded" required>
+                        <input type="text" name="blockno" placeholder="Block Name" class="w-full bg-slate-800 p-2 rounded" required>
+                        <button type="submit" class="btn-3d bg-green-600 w-full text-sm py-2 px-4">Add Hall</button>
+                    </form>
+                     <form th:action="@{/admin/deleteHall}" method="post" class="space-y-4 p-4 mt-4 bg-slate-900/50 rounded-lg">
+                        <select name="examhallNo" class="w-full bg-slate-800 p-2 rounded"><option th:each="h : ${allHalls}" th:value="${h.examhallNo}" th:text="${h.examhallNo}"></option></select>
+                        <button type="submit" class="btn-3d bg-red-600 w-full text-sm py-2 px-4">Delete Hall</button>
+                    </form>
+                </div>
+                <!-- Manage Schedules -->
+                <div class="md:col-span-2">
+                     <h3 class="text-xl font-semibold mb-4 text-cyan-400">Manage Schedules</h3>
+                    <form th:action="@{/admin/addSchedule}" method="post" class="space-y-4 p-4 bg-slate-900/50 rounded-lg">
+                        <input type="datetime-local" name="slotStartTime" class="w-full bg-slate-800 p-2 rounded text-slate-400" required>
+                        <input type="datetime-local" name="slotEndTime" class="w-full bg-slate-800 p-2 rounded text-slate-400" required>
+                        <button type="submit" class="btn-3d bg-green-600 w-full text-sm py-2 px-4">Add Schedule</button>
+                    </form>
+                    <div class="p-4 mt-4 bg-slate-900/50 rounded-lg">
+                         <h4 class="font-semibold mb-2">Confirm Next Exam for Randomization</h4>
+                         <div th:if="${nextExam}">
+                             <p th:text="'Slot starting at ' + ${#temporals.format(nextExam.slotStartTime, 'dd-MMM HH:mm')}"></p>
+                             <form th:action="@{/admin/confirmRandomization}" method="post" class="mt-2">
+                                 <input type="hidden" name="scheduleId" th:value="${nextExam.id}">
+                                 <button type="submit" class="btn-3d bg-yellow-500 w-full text-sm py-2 px-4" th:disabled="${nextExam.randomizationConfirmed}" th:text="${nextExam.randomizationConfirmed} ? 'Confirmed' : 'Confirm Now'"></button>
+                             </form>
+                         </div>
+                         <p th:unless="${nextExam}" class="text-slate-500">No upcoming exams to confirm.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

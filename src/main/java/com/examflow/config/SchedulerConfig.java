@@ -34,7 +34,7 @@ public class SchedulerConfig {
                 LocalDateTime.now().getHour() == randomizationTime.getHour() &&
                 LocalDateTime.now().toLocalDate().isEqual(randomizationTime.toLocalDate())) {
 
-                log.info("Triggering randomization for exam: {}", schedule.getExamName());
+                log.info("Triggering randomization for exam: {}", schedule.getSlotStartTime());
                 seatingService.performRandomization();
             }
         }

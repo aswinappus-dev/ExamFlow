@@ -15,7 +15,6 @@ public class ExamSchedule {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-    private String examName;
 
     private LocalDateTime slotStartTime; 
     private LocalDateTime slotEndTime;
@@ -28,12 +27,6 @@ public class ExamSchedule {
     }
     public void setId(Integer id) {
         this.id = id;
-    }
-    public String getExamName() {
-        return examName;
-    }
-    public void setExamName(String examName) {
-        this.examName = examName;
     }
     public LocalDateTime getSlotStartTime() {
         return slotStartTime;
