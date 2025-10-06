@@ -10,12 +10,15 @@ import org.springframework.stereotype.Repository;
 import com.examflow.model.ExamSchedule;
 
 @Repository
-// CORRECTED: The ID type is now Integer to match your ExamSchedule.java entity.
 public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Integer> {
 
-    Optional<ExamSchedule> findFirstByRandomizationConfirmedIsTrueAndSlotStartTimeIsAfterOrderBySlotStartTimeAsc(LocalDateTime currentTime);
+    // Finds the next confirmed exam for student/invigilator view
+    Optional<ExamSchedule> findFirstByRandomizationConfirmedIsTrueAndSlotStartTimeAfterOrderBySlotStartTimeAsc(LocalDateTime currentTime);
+
+    // Finds the next unconfirmed exam for the admin panel
+    Optional<ExamSchedule> findFirstByRandomizationConfirmedIsFalseAndSlotStartTimeAfterOrderBySlotStartTimeAsc(LocalDateTime currentTime);
     
-    // ADDED: This method is required by the SeatingService for cleanup.
+    // Finds old exams for cleanup
     List<ExamSchedule> findBySlotEndTimeBefore(LocalDateTime time);
 }
 

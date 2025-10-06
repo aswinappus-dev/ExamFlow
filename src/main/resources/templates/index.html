@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ExamFlow - Seating Arrangement</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #0f172a; color: #e2e8f0; }
@@ -14,8 +13,6 @@
         .glass-card { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(51, 65, 85, 0.5); border-radius: 1.5rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
         .btn-3d { position: relative; border: none; transition: all 0.2s ease-in-out; border-radius: 12px; color: white; padding: 1rem 2rem; font-weight: 600; cursor: pointer; transform-style: preserve-3d; box-shadow: 0 5px 0 #475569; }
         .btn-3d:hover { transform: translateY(2px); box-shadow: 0 3px 0 #475569; }
-        .btn-3d:active { transform: translateY(5px); box-shadow: 0 0 0 #475569; }
-        .btn-glow { box-shadow: 0 0 5px #67e8f9, 0 0 10px #67e8f9, 0 0 15px #22d3ee, 0 0 20px #22d3ee; }
         .sidebar { transition: transform 0.3s ease-in-out; transform: translateX(-100%); z-index: 50; }
         .sidebar-open { transform: translateX(0); }
         .hidden-view { display: none; }
@@ -28,11 +25,69 @@
         .sidebar-logo, .sidebar nav { transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; opacity: 0; transform: translateY(-15px); }
         .sidebar-open .sidebar-logo { opacity: 1; transform: translateY(0); transition-delay: 0.2s; }
         .sidebar-open nav { opacity: 1; transform: translateY(0); transition-delay: 0.3s; }
+
+        #hall-picker-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px);
+            z-index: 100; display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        #hall-picker-modal.visible { opacity: 1; pointer-events: auto; }
+        .picker-container {
+            width: 90%; max-width: 250px; height: 300px; background: #1e293b;
+            border-radius: 1.5rem; padding: 1.5rem; display: flex; flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .picker-wheel {
+            flex-grow: 1; overflow-y: scroll; scroll-snap-type: y mandatory;
+            padding: 120px 0; -ms-overflow-style: none; scrollbar-width: none;
+        }
+        .picker-wheel::-webkit-scrollbar { display: none; }
+        .picker-item {
+            height: 60px; display: flex; justify-content: center; align-items: center;
+            font-size: 1.5rem; font-weight: 600; color: #64748b;
+            scroll-snap-align: center; transition: all 0.2s ease-out;
+            transform: scale(0.8); opacity: 0.5;
+        }
+        .picker-item.is-selected { color: #67e8f9; transform: scale(1.2); opacity: 1; }
+        .picker-indicator {
+            position: absolute; top: 50%; left: 0; right: 0; height: 60px;
+            transform: translateY(-50%); background: rgba(100, 116, 139, 0.1);
+            border-top: 2px solid #334155; border-bottom: 2px solid #334155;
+            pointer-events: none;
+        }
+
+        #countdown-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
+        }
+        #countdown-modal {
+            transform: scale(0.7); opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #countdown-overlay.visible { opacity: 1; pointer-events: auto; }
+        #countdown-overlay.visible #countdown-modal { transform: scale(1); opacity: 1; }
+        .timer-box { background-color: #1e293b; padding: 1rem 1.5rem; border-radius: 0.75rem; }
     </style>
 </head>
 <body class="overflow-x-hidden">
 
-    <!-- Sidebar -->
+    <div id="countdown-overlay" class="hidden">
+        <div id="countdown-modal" class="glass-card p-8 text-center">
+            <h2 class="text-2xl font-bold text-cyan-300 mb-4">Seating Arrangement Locked</h2>
+            <p class="text-slate-400 mb-6">Will be revealed in:</p>
+            <div class="flex justify-center gap-4 text-white">
+                <div><div id="timer-hours" class="timer-box text-4xl font-bold">00</div><span class="text-xs text-slate-500">HOURS</span></div>
+                <div><div id="timer-minutes" class="timer-box text-4xl font-bold">00</div><span class="text-xs text-slate-500">MINUTES</span></div>
+                <div><div id="timer-seconds" class="timer-box text-4xl font-bold">00</div><span class="text-xs text-slate-500">SECONDS</span></div>
+            </div>
+        </div>
+    </div>
+
     <div id="sidebar" class="sidebar fixed top-0 left-0 h-full w-64 glass-card p-6">
         <h2 class="sidebar-logo text-2xl font-bold text-cyan-300 mb-8">ExamFlow</h2>
         <nav class="flex flex-col space-y-4">
@@ -50,80 +105,81 @@
                 <span class="hamburger__bar bar-1"></span><span class="hamburger__bar bar-2"></span><span class="hamburger__bar bar-3"></span>
             </button>
             <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-500">ExamFlow</h1>
-            <div></div> <!-- Spacer -->
+            <div></div>
         </header>
 
         <main id="content-area" class="w-full max-w-5xl mx-auto">
 
-            <!-- Home View -->
             <section id="home-view" class="">
                  <div class="text-center">
                     <h2 class="text-5xl sm:text-7xl font-bold mb-6">Welcome</h2>
                     <p class="text-lg text-slate-400 mb-12">The seamless solution for exam seating.</p>
                     <div class="flex flex-col sm:flex-row justify-center items-center gap-6">
-                        <button onclick="showView('student-view')" class="btn-3d bg-cyan-500 btn-glow w-full sm:w-auto">I'm a Student</button>
+                        <button onclick="showView('student-view')" class="btn-3d bg-cyan-500 w-full sm:w-auto">I'm a Student</button>
                         <button onclick="showView('invigilator-view')" class="btn-3d bg-blue-600 w-full sm:w-auto">I'm an Invigilator</button>
                     </div>
                 </div>
             </section>
 
-            <!-- Student View -->
             <section id="student-view" class="hidden-view">
                 <div class="glass-card p-8 max-w-md mx-auto">
                     <h2 class="text-3xl font-bold text-center text-cyan-300 mb-6">Find Your Seat</h2>
                     <form th:action="@{/student}" method="post">
-                        <input type="text" name="registerNo" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 mb-4" placeholder="e.g., CEC22AD001" required>
-                        <button type="submit" class="btn-3d bg-cyan-500 w-full btn-glow">Confirm</button>
+                        <input type="text" name="registerNo" class="w-full bg-slate-800 p-3 mb-4 rounded-lg" placeholder="e.g., CEC22AD001" required>
+                        <button type="submit" class="btn-3d bg-cyan-500 w-full">Confirm</button>
                     </form>
                     <div th:if="${studentResult}" class="mt-8 text-center p-6 bg-slate-900/50 rounded-lg">
                         <p th:if="${studentResult.message}" th:text="${studentResult.message}" class="text-lg text-amber-400"></p>
                         <div th:if="${studentResult.arrangement}">
-                             <h3 class="text-slate-400 text-lg">Hall: <strong class="text-2xl text-cyan-300" th:text="${studentResult.arrangement.examhallNo}"></strong></h3>
-                             <h3 class="text-slate-400 text-lg mt-2">Seat: <strong class="text-2xl text-cyan-300" th:text="${studentResult.arrangement.id}"></strong></h3>
+                             <h3 class="text-slate-400">Hall: <strong class="text-2xl text-cyan-300" th:text="${studentResult.arrangement.examhallNo}"></strong></h3>
+                             <h3 class="text-slate-400 mt-2">Seat: <strong class="text-2xl text-cyan-300" th:text="${studentResult.arrangement.id}"></strong></h3>
                         </div>
-                        <button onclick="window.location.href='/'" class="mt-6 text-sm text-cyan-400 hover:underline">Return to Home</button>
+                        <button onclick="showView('home-view')" class="mt-6 text-sm text-cyan-400 hover:underline">Return to Home</button>
                     </div>
                 </div>
             </section>
 
-            <!-- Invigilator View -->
             <section id="invigilator-view" class="hidden-view">
                  <div class="glass-card p-8 max-w-4xl mx-auto">
                     <h2 class="text-3xl font-bold text-center text-blue-400 mb-6">Invigilator Dashboard</h2>
-                    <form th:action="@{/invigilator}" method="post">
-                        <select name="examhallNo" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 mb-4">
-                           <option th:each="hall : ${allHalls}" th:value="${hall.examhallNo}" th:text="${hall.examhallNo} + ' - Block: ' + ${hall.blockno}"></option>
-                        </select>
-                        <button type="submit" class="btn-3d bg-blue-600 w-full">Fetch Arrangement</button>
-                    </form>
+                    <div th:if="${invigilatorResult == null or invigilatorResult.revealTime == null}">
+                        <div class="mb-4">
+                            <label class="block text-slate-400 mb-2">1. Select Block</label>
+                            <select id="block-selector" class="w-full bg-slate-800 p-3 text-white rounded-lg">
+                                <option value="">-- Choose a Block --</option>
+                                <option th:each="block : ${hallsByBlock.keySet()}" th:value="${block}" th:text="${block}"></option>
+                            </select>
+                        </div>
+                        <form id="invigilator-form" th:action="@{/invigilator}" method="post" class="hidden">
+                            <input type="hidden" id="selected-hall-input" name="examhallNo">
+                        </form>
+                    </div>
                     <div th:if="${invigilatorResult}" class="mt-8">
                         <p th:if="${invigilatorResult.message}" th:text="${invigilatorResult.message}" class="text-lg text-amber-400 text-center"></p>
                         <div th:if="${invigilatorResult.arrangements}">
                             <h3 class="text-2xl font-bold text-center mb-6">Layout: Hall <span th:text="${selectedHall}"></span></h3>
                             <div class="grid grid-cols-3 gap-4 text-center">
-                                <div th:each="student : ${invigilatorResult.arrangements}" class="bg-slate-800 p-3 rounded-lg font-mono" th:text="${student.registerNo}"></div>
+                                <div th:each="s : ${invigilatorResult.arrangements}" class="bg-slate-800 p-3 rounded-lg font-mono" th:text="${s.registerNo}"></div>
                             </div>
                         </div>
-                        <button onclick="window.location.href='/'" class="mt-8 mx-auto block text-sm text-cyan-400 hover:underline">Return to Home</button>
+                        <button onclick="showView('home-view')" class="mt-8 mx-auto block text-sm text-cyan-400 hover:underline">Return to Home</button>
                     </div>
                 </div>
             </section>
-
-            <!-- Admin Login View -->
+            
             <section id="admin-login-view" class="hidden-view">
                 <div class="glass-card p-8 max-w-md mx-auto">
-                    <h2 class="text-3xl font-bold text-center text-cyan-300 mb-6">Admin Verification</h2>
-                    
-                    <form id="admin-email-form" th:action="@{/admin/send-code}" method="post">
-                        <p class="text-slate-400 text-center mb-4">Enter your email to receive a verification code.</p>
-                        <input type="email" name="email" class="w-full bg-slate-800 p-3 rounded-lg mb-4" required placeholder="admin@example.com">
-                        <button type="submit" class="btn-3d bg-cyan-600 w-full">Send Code</button>
-                    </form>
-
-                    <form id="admin-code-form" th:action="@{/admin/verify-code}" method="post" class="hidden">
-                         <p class="text-slate-400 text-center mb-4">A code has been sent to your email.</p>
-                         <input type="text" name="code" class="w-full bg-slate-800 p-3 rounded-lg mb-4 tracking-[0.5em] text-center" maxlength="6" required placeholder="------">
-                         <button type="submit" class="btn-3d bg-green-600 w-full">Verify & Enter</button>
+                    <h2 class="text-3xl font-bold text-center text-cyan-300 mb-6">Admin Login</h2>
+                    <form th:action="@{/admin/login}" method="post" class="space-y-4">
+                        <div>
+                            <label for="adminEmail" class="block text-slate-400 mb-2">Admin Email</label>
+                            <input type="email" id="adminEmail" name="email" class="w-full bg-slate-800 p-3 rounded-lg" required placeholder="aswinappus100@gmail.com">
+                        </div>
+                        <div>
+                            <label for="adminCode" class="block text-slate-400 mb-2">Verification Code</label>
+                            <input type="text" id="adminCode" name="code" class="w-full bg-slate-800 p-3 rounded-lg" required placeholder="Enter pre-set code (e.g., TEST01)">
+                        </div>
+                        <button type="submit" class="btn-3d bg-green-600 w-full">Login</button>
                     </form>
                     <p th:if="${adminLoginError}" th:text="${adminLoginError}" class="text-red-400 text-center mt-4"></p>
                 </div>
@@ -131,39 +187,119 @@
         </main>
     </div>
 
+    <div id="hall-picker-modal" class="">
+        <div class="picker-container">
+            <h3 class="text-center font-semibold text-slate-400 mb-4">2. Select Hall</h3>
+            <div class="relative flex-grow">
+                <div id="picker-wheel" class="picker-wheel"></div>
+                <div class="picker-indicator"></div>
+            </div>
+            <button id="confirm-hall-button" class="mt-4 btn-3d bg-blue-600 w-full text-base py-2 px-4">Confirm</button>
+        </div>
+    </div>
+    
     <script th:inline="javascript">
+        const countdownOverlay = document.getElementById('countdown-overlay');
+        let countdownInterval;
+
+        function startCountdown(revealTimeStr) {
+            const revealTime = new Date(revealTimeStr).getTime();
+            countdownOverlay.classList.remove('hidden');
+            setTimeout(() => countdownOverlay.classList.add('visible'), 10);
+            countdownInterval = setInterval(() => {
+                const distance = revealTime - new Date().getTime();
+                if (distance < 0) {
+                    clearInterval(countdownInterval);
+                    window.location.reload();
+                    return;
+                }
+                const h = Math.floor((distance / (1000*60*60)) % 24);
+                const m = Math.floor((distance / (1000*60)) % 60);
+                const s = Math.floor((distance / 1000) % 60);
+                document.getElementById('timer-hours').innerText = String(h).padStart(2, '0');
+                document.getElementById('timer-minutes').innerText = String(m).padStart(2, '0');
+                document.getElementById('timer-seconds').innerText = String(s).padStart(2, '0');
+            }, 1000);
+        }
+
+        const hallsByBlock = /*[[|${hallsByBlock}|]]*/ {};
+        const blockSelector = document.getElementById('block-selector');
+        const pickerModal = document.getElementById('hall-picker-modal');
+        const pickerWheel = document.getElementById('picker-wheel');
+        const confirmHallBtn = document.getElementById('confirm-hall-button');
+        const invigilatorForm = document.getElementById('invigilator-form');
+        const selectedHallInput = document.getElementById('selected-hall-input');
+        let selectedHall = null;
+
+        function openHallPicker(blockName) {
+            const halls = hallsByBlock[blockName];
+            if (!halls || halls.length === 0) return;
+            pickerWheel.innerHTML = '';
+            halls.forEach(hall => {
+                const item = document.createElement('div');
+                item.classList.add('picker-item');
+                item.textContent = hall.examhallNo;
+                pickerWheel.appendChild(item);
+            });
+            gsap.to(pickerModal, { autoAlpha: 1, duration: 0.3 });
+            setTimeout(updateSelectedHall, 100);
+        }
+
+        function updateSelectedHall() {
+            const items = Array.from(pickerWheel.children);
+            const wheelCenter = pickerWheel.scrollTop + pickerWheel.clientHeight / 2;
+            let closestItem = null, minDistance = Infinity;
+            items.forEach(item => {
+                const itemCenter = item.offsetTop - pickerWheel.offsetTop + item.clientHeight / 2;
+                const distance = Math.abs(wheelCenter - itemCenter);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestItem = item;
+                }
+                item.classList.remove('is-selected');
+            });
+            if (closestItem) {
+                closestItem.classList.add('is-selected');
+                selectedHall = closestItem.textContent;
+            }
+        }
+
+        blockSelector.addEventListener('change', () => {
+            const selectedBlock = blockSelector.value;
+            if (selectedBlock) openHallPicker(selectedBlock);
+        });
+        pickerWheel.addEventListener('scroll', updateSelectedHall);
+        confirmHallBtn.addEventListener('click', () => {
+            if (selectedHall) {
+                selectedHallInput.value = selectedHall;
+                invigilatorForm.submit();
+            }
+            gsap.to(pickerModal, { autoAlpha: 0, duration: 0.3 });
+        });
+        pickerModal.addEventListener('click', (e) => {
+             if (e.target === pickerModal) gsap.to(pickerModal, { autoAlpha: 0, duration: 0.3 });
+        });
+
         const contentArea = document.getElementById('content-area');
         const views = contentArea.querySelectorAll('main > section');
         const sidebar = document.getElementById('sidebar');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
         const hamburger = document.getElementById('hamburger-button');
 
-        function toggleSidebar() {
-            sidebar.classList.toggle('sidebar-open');
-            sidebarOverlay.classList.toggle('hidden');
-            hamburger.classList.toggle('is-active');
-        }
-        function closeSidebar() {
-            sidebar.classList.remove('sidebar-open');
-            sidebarOverlay.classList.add('hidden');
-            hamburger.classList.remove('is-active');
-        }
-        function showView(viewId) {
-            views.forEach(view => {
-                view.style.display = view.id === viewId ? 'block' : 'none';
-            });
-            closeSidebar();
-        }
+        function toggleSidebar() { sidebar.classList.toggle('sidebar-open'); sidebarOverlay.classList.toggle('hidden'); hamburger.classList.toggle('is-active'); }
+        function closeSidebar() { sidebar.classList.remove('sidebar-open'); sidebarOverlay.classList.add('hidden'); hamburger.classList.remove('is-active'); }
+        function showView(viewId) { views.forEach(v => { v.style.display = v.id === viewId ? 'block' : 'none'; }); closeSidebar(); }
         
         document.addEventListener('DOMContentLoaded', function() {
             const initialView = /*[[|${initialView}|]]*/ 'home-view';
-            const showCodeForm = /*[[|${showCodeForm}|]]*/ false;
-            
             showView(initialView);
-            
-            if (initialView === 'admin-login-view' && showCodeForm) {
-                 document.getElementById('admin-email-form').classList.add('hidden');
-                 document.getElementById('admin-code-form').classList.remove('hidden');
+            const studentResult = /*[[|${studentResult}|]]*/ null;
+            if (initialView === 'student-view' && studentResult && studentResult.revealTime) {
+                startCountdown(studentResult.revealTime);
+            }
+            const invigilatorResult = /*[[|${invigilatorResult}|]]*/ null;
+            if (initialView === 'invigilator-view' && invigilatorResult && invigilatorResult.revealTime) {
+                startCountdown(invigilatorResult.revealTime);
             }
         });
     </script>

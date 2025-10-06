@@ -24,13 +24,14 @@ public class WebController {
     @GetMapping("/")
     public String home(Model model) {
         model.addAttribute("initialView", "home-view");
-        model.addAttribute("allHalls", seatingService.getAllHalls());
+        model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
         return "index";
     }
 
     @PostMapping("/student")
     public String handleStudentRequest(@RequestParam String registerNo, Model model) {
         model.addAttribute("studentResult", seatingService.getStudentArrangement(registerNo));
+        model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
         model.addAttribute("initialView", "student-view");
         return "index";
     }
@@ -38,7 +39,7 @@ public class WebController {
     @PostMapping("/invigilator")
     public String handleInvigilatorRequest(@RequestParam String examhallNo, Model model) {
         model.addAttribute("invigilatorResult", seatingService.getHallArrangement(examhallNo));
-        model.addAttribute("allHalls", seatingService.getAllHalls());
+        model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
         model.addAttribute("selectedHall", examhallNo);
         model.addAttribute("initialView", "invigilator-view");
         return "index";
@@ -50,30 +51,21 @@ public class WebController {
             model.addAttribute("allStudents", seatingService.getAllStudents());
             model.addAttribute("allHalls", seatingService.getAllHalls());
             model.addAttribute("allSchedules", seatingService.getAllSchedules());
-            model.addAttribute("nextExam", seatingService.findNextExam().orElse(null));
+            // FIXED: Call the new method to find the next unconfirmed exam.
+            model.addAttribute("nextExam", seatingService.findNextUnconfirmedExam().orElse(null));
             return "admin_dashboard";
         } else {
+            model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
             model.addAttribute("initialView", "admin-login-view");
             return "index";
         }
     }
     
-    @PostMapping("/admin/send-code")
-    public String sendAdminCode(@RequestParam String email, HttpSession session, RedirectAttributes redirectAttributes) {
-        boolean wasSent = seatingService.generateAndStoreVerificationCode(session, email);
-        if (wasSent) {
-            redirectAttributes.addFlashAttribute("showCodeForm", true);
-        } else {
-            redirectAttributes.addFlashAttribute("adminLoginError", "This email is not registered as an administrator.");
-        }
-        return "redirect:/admin";
-    }
-
-    @PostMapping("/admin/verify-code")
-    public String verifyAdminCode(@RequestParam String code, HttpSession session, RedirectAttributes redirectAttributes) {
-        if (!seatingService.verifyAdminCode(session, code)) {
-            redirectAttributes.addFlashAttribute("adminLoginError", "Invalid or expired code.");
-            redirectAttributes.addFlashAttribute("showCodeForm", true);
+    @PostMapping("/admin/login")
+    public String handleAdminLogin(@RequestParam String email, @RequestParam String code, HttpSession session, RedirectAttributes redirectAttributes) {
+        boolean isAuthenticated = seatingService.verifyAdminCredentials(session, email, code);
+        if (!isAuthenticated) {
+            redirectAttributes.addFlashAttribute("adminLoginError", "Invalid email or verification code.");
         }
         return "redirect:/admin";
     }
@@ -81,23 +73,42 @@ public class WebController {
     @PostMapping("/admin/logout")
     public String adminLogout(HttpSession session) { session.invalidate(); return "redirect:/"; }
     
-    @PostMapping("/admin/addStudent")
-    public String addStudent(@RequestParam String registerNo) {
-        Student s = new Student(); s.setRegisterNo(registerNo); seatingService.addStudent(s);
+    @PostMapping("/admin/confirmRandomization")
+    public String confirmRandomization(@RequestParam Integer scheduleId, RedirectAttributes redirectAttributes) {
+        seatingService.confirmRandomization(scheduleId);
+        redirectAttributes.addFlashAttribute("confirmationSuccess", true);
         return "redirect:/admin";
     }
+
+    @PostMapping("/admin/addStudent")
+    public String addStudent(@RequestParam String registerNo) {
+        Student s = new Student();
+        s.setRegisterNo(registerNo);
+        seatingService.addStudent(s);
+        return "redirect:/admin";
+    }
+
     @PostMapping("/admin/deleteStudent")
-    public String deleteStudent(@RequestParam String registerNo) { seatingService.deleteStudent(registerNo); return "redirect:/admin"; }
+    public String deleteStudent(@RequestParam String registerNo) {
+        seatingService.deleteStudent(registerNo);
+        return "redirect:/admin";
+    }
+
     @PostMapping("/admin/addHall")
-    public String addHall(ExamHall h) { seatingService.addHall(h); return "redirect:/admin"; }
+    public String addHall(ExamHall hall) {
+        seatingService.addHall(hall);
+        return "redirect:/admin";
+    }
+
     @PostMapping("/admin/deleteHall")
-    public String deleteHall(@RequestParam String examhallNo) { seatingService.deleteHall(examhallNo); return "redirect:/admin"; }
+    public String deleteHall(@RequestParam String examhallNo) {
+        seatingService.deleteHall(examhallNo);
+        return "redirect:/admin";
+    }
+
     @PostMapping("/admin/addSchedule")
-    public String addSchedule(ExamSchedule s) { seatingService.addSchedule(s); return "redirect:/admin"; }
-    @PostMapping("/admin/confirmRandomization")
-    public String confirmRandomization(@RequestParam Integer scheduleId, RedirectAttributes ra) {
-        seatingService.confirmRandomization(scheduleId);
-        ra.addFlashAttribute("confirmationSuccess", true);
+    public String addSchedule(ExamSchedule schedule) {
+        seatingService.addSchedule(schedule);
         return "redirect:/admin";
     }
 }
