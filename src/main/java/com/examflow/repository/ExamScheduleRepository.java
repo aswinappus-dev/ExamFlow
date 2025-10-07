@@ -12,13 +12,13 @@ import com.examflow.model.ExamSchedule;
 @Repository
 public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Integer> {
 
-    // Finds the next confirmed exam for student/invigilator view
+    // Finds the next confirmed exam for student/invigilator views & scheduler
     Optional<ExamSchedule> findFirstByRandomizationConfirmedIsTrueAndSlotStartTimeAfterOrderBySlotStartTimeAsc(LocalDateTime currentTime);
 
-    // Finds the next unconfirmed exam for the admin panel
-    Optional<ExamSchedule> findFirstByRandomizationConfirmedIsFalseAndSlotStartTimeAfterOrderBySlotStartTimeAsc(LocalDateTime currentTime);
+    // ADDED: Finds ALL unconfirmed exams for the admin panel
+    List<ExamSchedule> findAllByRandomizationConfirmedIsFalseAndSlotStartTimeAfterOrderBySlotStartTimeAsc(LocalDateTime currentTime);
     
-    // Finds old exams for cleanup
+    // Finds old exams for the cleanup task
     List<ExamSchedule> findBySlotEndTimeBefore(LocalDateTime time);
 }
 

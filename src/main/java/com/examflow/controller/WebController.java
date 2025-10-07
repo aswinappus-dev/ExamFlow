@@ -49,10 +49,10 @@ public class WebController {
     public String adminPortal(Model model, HttpSession session) {
         if (session.getAttribute("isAdmin") != null && (Boolean) session.getAttribute("isAdmin")) {
             model.addAttribute("allStudents", seatingService.getAllStudents());
-            model.addAttribute("allHalls", seatingService.getAllHalls());
+            model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
             model.addAttribute("allSchedules", seatingService.getAllSchedules());
-            // FIXED: Call the new method to find the next unconfirmed exam.
-            model.addAttribute("nextExam", seatingService.findNextUnconfirmedExam().orElse(null));
+            model.addAttribute("unconfirmedExams", seatingService.findAllUnconfirmedExams());
+            model.addAttribute("nextConfirmedExam", seatingService.findNextConfirmedExam().orElse(null));
             return "admin_dashboard";
         } else {
             model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
@@ -63,8 +63,7 @@ public class WebController {
     
     @PostMapping("/admin/login")
     public String handleAdminLogin(@RequestParam String email, @RequestParam String code, HttpSession session, RedirectAttributes redirectAttributes) {
-        boolean isAuthenticated = seatingService.verifyAdminCredentials(session, email, code);
-        if (!isAuthenticated) {
+        if (!seatingService.verifyAdminCredentials(session, email, code)) {
             redirectAttributes.addFlashAttribute("adminLoginError", "Invalid email or verification code.");
         }
         return "redirect:/admin";
@@ -82,9 +81,7 @@ public class WebController {
 
     @PostMapping("/admin/addStudent")
     public String addStudent(@RequestParam String registerNo) {
-        Student s = new Student();
-        s.setRegisterNo(registerNo);
-        seatingService.addStudent(s);
+        Student s = new Student(); s.setRegisterNo(registerNo); seatingService.addStudent(s);
         return "redirect:/admin";
     }
 

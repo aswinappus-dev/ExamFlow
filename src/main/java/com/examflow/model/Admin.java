@@ -17,3 +17,4 @@ public class Admin {
     public String getVerificationCode() { return verificationCode; }
     public void setVerificationCode(String verificationCode) { this.verificationCode = verificationCode; }
 }
+

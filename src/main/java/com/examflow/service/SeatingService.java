@@ -7,10 +7,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.examflow.model.Admin;
 import com.examflow.model.ExamHall;
@@ -24,7 +26,6 @@ import com.examflow.repository.StudRandRepository;
 import com.examflow.repository.StudentRepository;
 
 import jakarta.servlet.http.HttpSession;
-import jakarta.transaction.Transactional;
 
 @Service
 public class SeatingService {
@@ -70,25 +71,29 @@ public class SeatingService {
             studRandRepository.deleteAll();
         }
     }
-
-    public Optional<ExamSchedule> findNextExam() {
+    
+    public Optional<ExamSchedule> findNextConfirmedExam() {
         return examScheduleRepository.findFirstByRandomizationConfirmedIsTrueAndSlotStartTimeAfterOrderBySlotStartTimeAsc(LocalDateTime.now());
     }
-    
-    public Optional<ExamSchedule> findNextUnconfirmedExam() {
-        return examScheduleRepository.findFirstByRandomizationConfirmedIsFalseAndSlotStartTimeAfterOrderBySlotStartTimeAsc(LocalDateTime.now());
+
+    /**
+     * ADDED: This method was missing, causing the error in your WebController.
+     * It finds all exams that are upcoming but have not yet been confirmed by the admin.
+     */
+    public List<ExamSchedule> findAllUnconfirmedExams() {
+        return examScheduleRepository.findAllByRandomizationConfirmedIsFalseAndSlotStartTimeAfterOrderBySlotStartTimeAsc(LocalDateTime.now());
     }
 
     public Map<String, Object> getStudentArrangement(String registerNo) {
         Map<String, Object> result = new HashMap<>();
-        var nextConfirmedExam = findNextExam();
+        var nextConfirmedExam = findNextConfirmedExam();
         if (nextConfirmedExam.isEmpty()) {
             result.put("message", "No upcoming exam has been scheduled for randomization.");
             return result;
         }
         LocalDateTime revealTime = nextConfirmedExam.get().getSlotStartTime().minusMinutes(1);
         if (LocalDateTime.now().isBefore(revealTime)) {
-            result.put("revealTime", revealTime);
+            result.put("revealTime", revealTime.toString());
             return result;
         }
         studRandRepository.findByRegisterNo(registerNo)
@@ -101,14 +106,14 @@ public class SeatingService {
 
     public Map<String, Object> getHallArrangement(String examhallNo) {
         Map<String, Object> result = new HashMap<>();
-        var nextConfirmedExam = findNextExam();
+        var nextConfirmedExam = findNextConfirmedExam();
         if (nextConfirmedExam.isEmpty()) {
             result.put("message", "No upcoming exam has been scheduled for randomization.");
             return result;
         }
         LocalDateTime revealTime = nextConfirmedExam.get().getSlotStartTime().minusMinutes(1);
         if (LocalDateTime.now().isBefore(revealTime)) {
-            result.put("revealTime", revealTime);
+            result.put("revealTime", revealTime.toString());
             return result;
         }
         result.put("arrangements", studRandRepository.findByExamhallNo(examhallNo));
@@ -124,9 +129,8 @@ public class SeatingService {
         return false;
     }
     
-    public Map<String, List<ExamHall>> getHallsGroupedByBlock() { return examHallRepository.findAll().stream().collect(Collectors.groupingBy(ExamHall::getBlockno)); }
+    public Map<String, List<ExamHall>> getHallsGroupedByBlock() { return examHallRepository.findAll().stream().collect(Collectors.groupingBy(ExamHall::getBlockno, TreeMap::new, Collectors.toList())); }
     public List<Student> getAllStudents() { return studentRepository.findAll(); }
-    public List<ExamHall> getAllHalls() { return examHallRepository.findAll(); }
     public List<ExamSchedule> getAllSchedules() { return examScheduleRepository.findAll(); }
     public void addStudent(Student s) { studentRepository.save(s); }
     public void deleteStudent(String r) { studentRepository.deleteById(r); }
