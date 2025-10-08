@@ -21,4 +21,3 @@ public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Inte
     // Finds old exams for the cleanup task
     List<ExamSchedule> findBySlotEndTimeBefore(LocalDateTime time);
 }
-

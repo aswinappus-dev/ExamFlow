@@ -21,7 +21,7 @@ public class SchedulerConfig {
 
     @Scheduled(cron = "0 * * * * ?") // Runs every minute
     public void scheduleRandomization() {
-        // The scheduler should look for CONFIRMED exams to randomize.
+        // CORRECTED: The scheduler should look for CONFIRMED exams to randomize.
         Optional<ExamSchedule> nextExamOpt = seatingService.findNextConfirmedExam();
 
         if (nextExamOpt.isPresent()) {
