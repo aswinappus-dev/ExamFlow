@@ -24,25 +24,24 @@ public class WebController {
     @Autowired
     private SeatingService seatingService;
 
-        @GetMapping("/about")
-    public String aboutPage() {
-        return "about"; // This tells Spring to render about.html
-    }
-
-    // FIX: Add a GET mapping to handle the /support URL
-    @GetMapping("/support")
-    public String supportPage() {
-        return "support"; // This tells Spring to render support.html
-    }
-
-
-
     @GetMapping("/")
     public String home(Model model) {
         model.addAttribute("initialView", "home-view");
         model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
         model.addAttribute("allStudents", seatingService.getAllStudents());
+        // Pass the flag to the frontend to conditionally show the invigilator form
+        model.addAttribute("isDataReady", seatingService.isSeatingDataReadyForPublicView());
         return "index";
+    }
+
+    @GetMapping("/about")
+    public String aboutPage() {
+        return "about";
+    }
+
+    @GetMapping("/support")
+    public String supportPage() {
+        return "support";
     }
 
     @PostMapping("/student")
@@ -51,6 +50,7 @@ public class WebController {
         model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
         model.addAttribute("allStudents", seatingService.getAllStudents());
         model.addAttribute("initialView", "student-view");
+        model.addAttribute("isDataReady", seatingService.isSeatingDataReadyForPublicView());
         return "index";
     }
 
@@ -61,6 +61,7 @@ public class WebController {
         model.addAttribute("allStudents", seatingService.getAllStudents());
         model.addAttribute("selectedHall", examhallNo);
         model.addAttribute("initialView", "invigilator-view");
+        model.addAttribute("isDataReady", seatingService.isSeatingDataReadyForPublicView());
         return "index";
     }
 
@@ -98,7 +99,7 @@ public class WebController {
     @PostMapping("/admin/confirmRandomization")
     public String confirmRandomization(@RequestParam Integer scheduleId, RedirectAttributes redirectAttributes) {
         seatingService.confirmRandomization(scheduleId);
-        redirectAttributes.addFlashAttribute("confirmationSuccess", true);
+        redirectAttributes.addFlashAttribute("confirmationSuccess", "Exam has been confirmed for randomization.");
         return "redirect:/admin";
     }
 
@@ -108,7 +109,7 @@ public class WebController {
         redirectAttributes.addFlashAttribute("groupAddedSuccess", "Successfully added group to schedule.");
         return "redirect:/admin";
     }
-    
+
     @PostMapping("/admin/updateHallAvailability")
     public String updateHallAvailability(@RequestParam("scheduleId") Integer scheduleId,
                                          @RequestParam(name = "availableHalls", required = false) List<String> availableHallNumbers,
@@ -119,32 +120,39 @@ public class WebController {
     }
 
     @PostMapping("/admin/addStudent")
-    public String addStudent(@RequestParam String registerNo) {
-        Student s = new Student(); s.setRegisterNo(registerNo); seatingService.addStudent(s);
+    public String addStudent(@RequestParam String registerNo, RedirectAttributes redirectAttributes) {
+        Student s = new Student();
+        s.setRegisterNo(registerNo);
+        seatingService.addStudent(s);
+        redirectAttributes.addFlashAttribute("studentMessage", "Student " + registerNo + " added.");
         return "redirect:/admin";
     }
 
     @PostMapping("/admin/deleteStudent")
-    public String deleteStudent(@RequestParam String registerNo) {
+    public String deleteStudent(@RequestParam String registerNo, RedirectAttributes redirectAttributes) {
         seatingService.deleteStudent(registerNo);
+        redirectAttributes.addFlashAttribute("studentMessage", "Student " + registerNo + " deleted.");
         return "redirect:/admin";
     }
 
     @PostMapping("/admin/addHall")
-    public String addHall(ExamHall hall) {
+    public String addHall(ExamHall hall, RedirectAttributes redirectAttributes) {
         seatingService.addHall(hall);
+        redirectAttributes.addFlashAttribute("hallMessage", "Hall " + hall.getExamhallNo() + " added.");
         return "redirect:/admin";
     }
 
     @PostMapping("/admin/deleteHall")
-    public String deleteHall(@RequestParam String examhallNo) {
+    public String deleteHall(@RequestParam String examhallNo, RedirectAttributes redirectAttributes) {
         seatingService.deleteHall(examhallNo);
+        redirectAttributes.addFlashAttribute("hallMessage", "Hall " + examhallNo + " deleted.");
         return "redirect:/admin";
     }
 
     @PostMapping("/admin/addSchedule")
-    public String addSchedule(ExamSchedule schedule) {
+    public String addSchedule(ExamSchedule schedule, RedirectAttributes redirectAttributes) {
         seatingService.addSchedule(schedule);
+        redirectAttributes.addFlashAttribute("scheduleMessage", "New exam schedule added.");
         return "redirect:/admin";
     }
 }

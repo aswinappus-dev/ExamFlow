@@ -26,37 +26,6 @@
         .sidebar-open .sidebar-logo { opacity: 1; transform: translateY(0); transition-delay: 0.2s; }
         .sidebar-open nav { opacity: 1; transform: translateY(0); transition-delay: 0.3s; }
 
-        #hall-picker-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px);
-            z-index: 100; display: flex; justify-content: center; align-items: center;
-            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-        }
-        #hall-picker-modal.visible { opacity: 1; pointer-events: auto; }
-        .picker-container {
-            width: 90%; max-width: 250px; height: 300px; background: #1e293b;
-            border-radius: 1.5rem; padding: 1.5rem; display: flex; flex-direction: column;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        }
-        .picker-wheel {
-            flex-grow: 1; overflow-y: scroll; scroll-snap-type: y mandatory;
-            padding: 120px 0; -ms-overflow-style: none; scrollbar-width: none;
-        }
-        .picker-wheel::-webkit-scrollbar { display: none; }
-        .picker-item {
-            height: 60px; display: flex; justify-content: center; align-items: center;
-            font-size: 1.5rem; font-weight: 600; color: #64748b;
-            scroll-snap-align: center; transition: all 0.2s ease-out;
-            transform: scale(0.8); opacity: 0.5;
-        }
-        .picker-item.is-selected { color: #67e8f9; transform: scale(1.2); opacity: 1; }
-        .picker-indicator {
-            position: absolute; top: 50%; left: 0; right: 0; height: 60px;
-            transform: translateY(-50%); background: rgba(100, 116, 139, 0.1);
-            border-top: 2px solid #334155; border-bottom: 2px solid #334155;
-            pointer-events: none;
-        }
-
         #countdown-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-color: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px);
@@ -140,36 +109,47 @@
                     </div>
                 </div>
             </section>
-            
+
             <section id="invigilator-view" class="hidden-view">
                  <div class="glass-card p-8 max-w-4xl mx-auto">
                     <h2 class="text-3xl font-bold text-center text-blue-400 mb-6">Invigilator Dashboard</h2>
-                    
-                    <div th:if="${invigilatorResult == null or (invigilatorResult.arrangements == null and invigilatorResult.revealTime == null)}">
-                        <form id="invigilator-form" th:action="@{/invigilator}" method="post" class="space-y-4">
-                            <select name="examhallNo" class="w-full bg-slate-800 p-3 text-white rounded-lg">
-                                <option value="">-- Choose a Hall --</option>
-                                <optgroup th:each="blockEntry : ${hallsByBlock}" th:label="${blockEntry.key}">
-                                    <option th:each="hall : ${blockEntry.value}" th:value="${hall.examhallNo}" th:text="${hall.examhallNo}"></option>
-                                </optgroup>
-                            </select>
-                            <button type="submit" class="btn-3d bg-blue-600 w-full">Fetch Arrangement</button>
-                        </form>
+
+                    <!-- UPDATED LOGIC: Conditionally show form or message -->
+                    <div th:if="${isDataReady}">
+                        <!-- Only show the form if a result hasn't been fetched yet for this session -->
+                        <div th:if="${invigilatorResult == null}">
+                            <form id="invigilator-form" th:action="@{/invigilator}" method="post" class="space-y-4">
+                                <select name="examhallNo" class="w-full bg-slate-800 p-3 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                    <option value="">-- Choose a Hall --</option>
+                                    <optgroup th:each="blockEntry : ${hallsByBlock}" th:label="${blockEntry.key}">
+                                        <option th:each="hall : ${blockEntry.value}" th:value="${hall.examhallNo}" th:text="${hall.examhallNo}"></option>
+                                    </optgroup>
+                                </select>
+                                <button type="submit" class="btn-3d bg-blue-600 w-full disabled:opacity-50 disabled:cursor-not-allowed" disabled>Fetch Arrangement</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div th:unless="${isDataReady}" class="text-center p-6 bg-slate-900/50 rounded-lg">
+                         <p class="text-lg text-amber-400">Seating data is not ready yet. Please check back later.</p>
                     </div>
 
+                    <!-- This section for displaying results remains the same -->
                     <div th:if="${invigilatorResult}" class="mt-8">
                         <p th:if="${invigilatorResult.message}" th:text="${invigilatorResult.message}" class="text-lg text-amber-400 text-center"></p>
                         <div th:if="${invigilatorResult.arrangements}">
                             <h3 class="text-2xl font-bold text-center mb-6">Layout: Hall <span th:text="${selectedHall}"></span></h3>
-                            <div class="grid grid-cols-3 gap-4 text-center">
-                                <div th:each="s : ${invigilatorResult.arrangements}" class="bg-slate-800 p-3 rounded-lg font-mono" th:text="${s.registerNo}"></div>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 text-center">
+                                <div th:each="s : ${invigilatorResult.arrangements}" class="bg-slate-800 p-3 rounded-lg font-mono text-sm">
+                                    <span class="font-bold text-cyan-300" th:text="'Seat ' + ${s.seatNo} + ':'"></span>
+                                    <span th:text="${s.registerNo}"></span>
+                                </div>
                             </div>
                         </div>
-                        <button onclick="showView('home-view')" class="mt-8 mx-auto block text-sm text-cyan-400 hover:underline">Return to Home</button>
+                        <button th:onclick="|window.location.href='@{/}'|" class="mt-8 mx-auto block text-sm text-cyan-400 hover:underline">Return to Home</button>
                     </div>
                 </div>
             </section>
-            
+
             <section id="admin-login-view" class="hidden-view">
                  <div class="glass-card p-8 max-w-md mx-auto">
                     <h2 class="text-3xl font-bold text-center text-cyan-300 mb-6">Admin Login</h2>
@@ -241,7 +221,7 @@
                 document.getElementById('timer-seconds').innerText = String(s).padStart(2, '0');
             }, 1000);
         }
-        
+
         // --- Page Initialization ---
         document.addEventListener('DOMContentLoaded', function() {
             const initialView = /*[[|${initialView}|]]*/ 'home-view';
@@ -260,3 +240,4 @@
     </script>
 </body>
 </html>
+

@@ -65,9 +65,11 @@ public class SeatingService {
         // Step 2: Fetch and prepare ONLY the eligible students
         Map<String, List<Student>> studentsByBranch = new HashMap<>();
         for (ExamGroup group : requiredGroups) {
+            // FIXED: Use correct getter names getStudentYear() and getStudentBranch()
             String prefix = "CEC" + group.getStudentYear() + group.getStudentBranch();
             List<Student> students = studentRepository.findByRegisterNoStartingWith(prefix);
             Collections.shuffle(students); // Shuffle students within their own branch for fairness
+            // FIXED: Use correct getter name getStudentBranch()
             studentsByBranch.put(group.getStudentBranch(), students);
         }
         int totalStudents = studentsByBranch.values().stream().mapToInt(List::size).sum();
@@ -81,13 +83,13 @@ public class SeatingService {
         List<ExamHall> allHalls = examHallRepository.findAll();
         List<ExamHallAvailability> unavailableHalls = availabilityRepository.findByScheduleIdAndIsAvailableFalse(scheduleId);
         Set<String> unavailableHallNumbers = unavailableHalls.stream()
-                                                    .map(ExamHallAvailability::getExamhallNo)
-                                                    .collect(Collectors.toSet());
+                                                .map(ExamHallAvailability::getExamhallNo)
+                                                .collect(Collectors.toSet());
         
         List<ExamHall> availableHalls = allHalls.stream()
-                                           .filter(hall -> !unavailableHallNumbers.contains(hall.getExamhallNo()))
-                                           .sorted(Comparator.comparing(ExamHall::getExamhallNo))
-                                           .collect(Collectors.toList());
+                                              .filter(hall -> !unavailableHallNumbers.contains(hall.getExamhallNo()))
+                                              .sorted(Comparator.comparing(ExamHall::getExamhallNo))
+                                              .collect(Collectors.toList());
 
         List<ExamHall> allocatedHalls = new ArrayList<>();
         int totalCapacity = 0;
@@ -106,8 +108,8 @@ public class SeatingService {
         allocatedHalls.sort(Comparator.comparing(ExamHall::getBlockno).thenComparing(ExamHall::getExamhallNo));
 
         List<Student> finalStudentList = studentsByBranch.values().stream()
-                                             .flatMap(List::stream)
-                                             .collect(Collectors.toList());
+                                               .flatMap(List::stream)
+                                               .collect(Collectors.toList());
         
         int studentIdx = 0;
         for (int i = 0; i < allocatedHalls.size(); i++) {
@@ -135,7 +137,7 @@ public class SeatingService {
         System.out.println("Randomization complete for exam ID " + scheduleId);
     }
 
-        public boolean isSeatingDataAvailable() {
+    public boolean isSeatingDataReadyForPublicView() {
         Optional<ExamSchedule> nextConfirmedExam = findNextConfirmedExam();
         if (nextConfirmedExam.isEmpty()) {
             return false; // No confirmed exam, so no data
@@ -228,7 +230,8 @@ public class SeatingService {
             result.put("revealTime", revealTime.toString());
             return result;
         }
-        result.put("arrangements", studRandRepository.findByExamhallNo(examhallNo));
+        // FIXED: Use the new sorted method
+        result.put("arrangements", studRandRepository.findByExamhallNoOrderBySeatNoAsc(examhallNo));
         return result;
     }
 

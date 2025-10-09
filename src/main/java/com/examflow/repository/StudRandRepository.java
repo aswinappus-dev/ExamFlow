@@ -16,5 +16,6 @@ public interface StudRandRepository extends JpaRepository<StudRand, Long> {
 
     // Finds all student arrangements for a specific hall
     List<StudRand> findByExamhallNo(String examhallNo); // THIS METHOD WAS MISSING
+    List<StudRand> findByExamhallNoOrderBySeatNoAsc(String examhallNo);
 }
 
