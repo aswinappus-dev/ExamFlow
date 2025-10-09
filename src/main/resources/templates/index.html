@@ -92,64 +92,69 @@
             <section id="student-view" class="hidden-view">
                 <div class="glass-card p-8 max-w-md mx-auto">
                     <h2 class="text-3xl font-bold text-center text-cyan-300 mb-6">Find Your Seat</h2>
-                    <form th:action="@{/student}" method="post">
-                        <input list="student-reg-list" name="registerNo" class="w-full bg-slate-800 p-3 mb-4 rounded-lg" placeholder="Start typing your register no..." required>
-                        <datalist id="student-reg-list">
-                            <option th:each="student : ${allStudents}" th:value="${student.registerNo}"></option>
-                        </datalist>
-                        <button type="submit" class="btn-3d bg-cyan-500 w-full">Confirm</button>
-                    </form>
+
+                    
+                    <!-- MODIFIED: Conditionally show the form or a message -->
+                    <div th:if="${isDataReady}">
+                        <form th:action="@{/student}" method="post">
+                            <input list="student-reg-list" name="registerNo" class="w-full bg-slate-800 p-3 mb-4 rounded-lg" placeholder="Start typing your register no..." required>
+                            <datalist id="student-reg-list">
+                                <option th:each="student : ${allStudents}" th:value="${student.registerNo}"></option>
+                            </datalist>
+                            <button type="submit" class="btn-3d bg-cyan-500 w-full">Confirm</button>
+                        </form>
+                    </div>
+                    <div th:unless="${isDataReady}" class="text-center">
+                         <p class="text-lg text-amber-400">Seat data is not ready to be viewed.</p>
+                         <p class="text-slate-500 mt-2">Please check back closer to the exam time.</p>
+                    </div>
+
                     <div th:if="${studentResult}" class="mt-8 text-center p-6 bg-slate-900/50 rounded-lg">
                         <p th:if="${studentResult.message}" th:text="${studentResult.message}" class="text-lg text-amber-400"></p>
                         <div th:if="${studentResult.arrangement}">
                              <h3 class="text-slate-400">Hall: <strong class="text-2xl text-cyan-300" th:text="${studentResult.arrangement.examhallNo} + ' (' + ${studentResult.arrangement.blockno} + ')'"></strong></h3>
                              <h3 class="text-slate-400 mt-2">Seat: <strong class="text-2xl text-cyan-300" th:text="${studentResult.arrangement.seatNo}"></strong></h3>
                         </div>
-                        <button onclick="showView('home-view')" class="mt-6 text-sm text-cyan-400 hover:underline">Return to Home</button>
+                        <a th:href="@{/}" class="mt-6 inline-block text-sm text-cyan-400 hover:underline">Return to Home</a>
                     </div>
                 </div>
             </section>
-
+            
             <section id="invigilator-view" class="hidden-view">
                  <div class="glass-card p-8 max-w-4xl mx-auto">
                     <h2 class="text-3xl font-bold text-center text-blue-400 mb-6">Invigilator Dashboard</h2>
-
-                    <!-- UPDATED LOGIC: Conditionally show form or message -->
+                    
                     <div th:if="${isDataReady}">
-                        <!-- Only show the form if a result hasn't been fetched yet for this session -->
-                        <div th:if="${invigilatorResult == null}">
-                            <form id="invigilator-form" th:action="@{/invigilator}" method="post" class="space-y-4">
-                                <select name="examhallNo" class="w-full bg-slate-800 p-3 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                    <option value="">-- Choose a Hall --</option>
-                                    <optgroup th:each="blockEntry : ${hallsByBlock}" th:label="${blockEntry.key}">
-                                        <option th:each="hall : ${blockEntry.value}" th:value="${hall.examhallNo}" th:text="${hall.examhallNo}"></option>
-                                    </optgroup>
-                                </select>
-                                <button type="submit" class="btn-3d bg-blue-600 w-full disabled:opacity-50 disabled:cursor-not-allowed" disabled>Fetch Arrangement</button>
-                            </form>
-                        </div>
+                        <form id="invigilator-form" th:action="@{/invigilator}" method="post" class="space-y-4">
+                            <select name="examhallNo" class="w-full bg-slate-800 p-3 text-white rounded-lg">
+                                <option value="">-- Choose a Hall --</option>
+                                <optgroup th:each="blockEntry : ${hallsByBlock}" th:label="${blockEntry.key}">
+                                    <option th:each="hall : ${blockEntry.value}" th:value="${hall.examhallNo}" th:text="${hall.examhallNo}"></option>
+                                </optgroup>
+                            </select>
+                            <button type="submit" class="btn-3d bg-blue-600 w-full">Fetch Arrangement</button>
+                        </form>
                     </div>
-                    <div th:unless="${isDataReady}" class="text-center p-6 bg-slate-900/50 rounded-lg">
-                         <p class="text-lg text-amber-400">Seating data is not ready yet. Please check back later.</p>
+                    <div th:unless="${isDataReady}" class="text-center">
+                         <p class="text-lg text-amber-400">Seat data is not ready to be viewed.</p>
+                         <p class="text-slate-500 mt-2">Please check back closer to the exam time.</p>
                     </div>
 
-                    <!-- This section for displaying results remains the same -->
                     <div th:if="${invigilatorResult}" class="mt-8">
                         <p th:if="${invigilatorResult.message}" th:text="${invigilatorResult.message}" class="text-lg text-amber-400 text-center"></p>
                         <div th:if="${invigilatorResult.arrangements}">
                             <h3 class="text-2xl font-bold text-center mb-6">Layout: Hall <span th:text="${selectedHall}"></span></h3>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 text-center">
-                                <div th:each="s : ${invigilatorResult.arrangements}" class="bg-slate-800 p-3 rounded-lg font-mono text-sm">
-                                    <span class="font-bold text-cyan-300" th:text="'Seat ' + ${s.seatNo} + ':'"></span>
-                                    <span th:text="${s.registerNo}"></span>
+                            <div class="grid grid-cols-3 gap-4 text-center">
+                                <div th:each="s : ${invigilatorResult.arrangements}" class="bg-slate-800 p-3 rounded-lg font-mono">
+                                    Seat <strong class="text-cyan-300" th:text="${s.seatNo}"></strong>: <span th:text="${s.registerNo}"></span>
                                 </div>
                             </div>
                         </div>
-                        <button th:onclick="|window.location.href='@{/}'|" class="mt-8 mx-auto block text-sm text-cyan-400 hover:underline">Return to Home</button>
+                         <a th:href="@{/}" class="mt-8 mx-auto block text-sm text-cyan-400 hover:underline">Return to Home</a>
                     </div>
                 </div>
             </section>
-
+            
             <section id="admin-login-view" class="hidden-view">
                  <div class="glass-card p-8 max-w-md mx-auto">
                     <h2 class="text-3xl font-bold text-center text-cyan-300 mb-6">Admin Login</h2>
@@ -221,7 +226,7 @@
                 document.getElementById('timer-seconds').innerText = String(s).padStart(2, '0');
             }, 1000);
         }
-
+        
         // --- Page Initialization ---
         document.addEventListener('DOMContentLoaded', function() {
             const initialView = /*[[|${initialView}|]]*/ 'home-view';
