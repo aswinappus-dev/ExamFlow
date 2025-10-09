@@ -25,12 +25,14 @@ public class WebController {
     @Autowired
     private SeatingService seatingService;
 
+    // --- PUBLIC VIEWS ---
+
     @GetMapping("/")
     public String home(Model model) {
         model.addAttribute("initialView", "home-view");
         model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
         model.addAttribute("allStudents", seatingService.getAllStudents());
-        // Pass the flag to the frontend to conditionally show the invigilator form
+        // Pass data readiness flag to hide/show forms on public dashboards
         model.addAttribute("isDataReady", seatingService.isSeatingDataReadyForPublicView());
         return "index";
     }
@@ -45,13 +47,15 @@ public class WebController {
         return "support";
     }
 
+    // --- STUDENT & INVIGILATOR HANDLERS ---
+
     @PostMapping("/student")
     public String handleStudentRequest(@RequestParam String registerNo, Model model) {
         model.addAttribute("studentResult", seatingService.getStudentArrangement(registerNo));
         model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
         model.addAttribute("allStudents", seatingService.getAllStudents());
-        model.addAttribute("initialView", "student-view");
         model.addAttribute("isDataReady", seatingService.isSeatingDataReadyForPublicView());
+        model.addAttribute("initialView", "student-view");
         return "index";
     }
 
@@ -60,14 +64,20 @@ public class WebController {
         model.addAttribute("invigilatorResult", seatingService.getHallArrangement(examhallNo));
         model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
         model.addAttribute("allStudents", seatingService.getAllStudents());
+        model.addAttribute("isDataReady", seatingService.isSeatingDataReadyForPublicView());
         model.addAttribute("selectedHall", examhallNo);
         model.addAttribute("initialView", "invigilator-view");
-        model.addAttribute("isDataReady", seatingService.isSeatingDataReadyForPublicView());
         return "index";
     }
 
+    // --- ADMIN VIEWS & AUTHENTICATION (TESTING BYPASS ACTIVE) ---
+
     @GetMapping("/admin")
     public String adminPortal(Model model, HttpSession session) {
+        // --- SECURITY BYPASS FOR TESTING: Always set isAdmin to true ---
+        session.setAttribute("isAdmin", true);
+        // --- END BYPASS ---
+        
         if (session.getAttribute("isAdmin") != null && (Boolean) session.getAttribute("isAdmin")) {
             model.addAttribute("allStudents", seatingService.getAllStudents());
             model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
@@ -82,32 +92,53 @@ public class WebController {
             return "index";
         }
     }
-
+    
     @PostMapping("/admin/login")
     public String handleAdminLogin(@RequestParam String email, @RequestParam String code, HttpSession session, RedirectAttributes redirectAttributes) {
-        if (!seatingService.verifyAdminCredentials(session, email, code)) {
+        // --- SECURITY BYPASS FOR TESTING: Always grant access ---
+        session.setAttribute("isAdmin", true);
+        // --- END BYPASS ---
+        
+        // Original logic kept for structure, but bypass above overrides it
+        if (!seatingService.verifyAdminCredentials(session, email, code) && !((Boolean)session.getAttribute("isAdmin"))) {
             redirectAttributes.addFlashAttribute("adminLoginError", "Invalid email or verification code.");
         }
         return "redirect:/admin";
     }
-
+    
     @PostMapping("/admin/logout")
-    public String adminLogout(HttpSession session) {
-        session.invalidate();
+    public String adminLogout(HttpSession session) { 
+        session.invalidate(); 
         return "redirect:/";
     }
+    
+    // --- ADMIN ACTIONS ---
 
     @PostMapping("/admin/confirmRandomization")
     public String confirmRandomization(@RequestParam Integer scheduleId, RedirectAttributes redirectAttributes) {
         seatingService.confirmRandomization(scheduleId);
-        redirectAttributes.addFlashAttribute("confirmationSuccess", "Exam has been confirmed for randomization.");
+        redirectAttributes.addFlashAttribute("confirmationSuccess", true);
+        return "redirect:/admin";
+    }
+
+    @PostMapping("/admin/addSchedule")
+    public String addSchedule() {
+        // --- FAST TESTING FIX: Create a default schedule 5 mins from now ---
+        LocalDateTime now = LocalDateTime.now();
+        ExamSchedule schedule = new ExamSchedule();
+        schedule.setSlotStartTime(now.plusMinutes(5));
+        schedule.setSlotEndTime(now.plusHours(2).plusMinutes(5)); // 2 hours later
+        seatingService.addSchedule(schedule);
         return "redirect:/admin";
     }
 
     @PostMapping("/admin/addGroupToSchedule")
-    public String addGroupToSchedule(ExamGroup examGroup, RedirectAttributes redirectAttributes) {
-        seatingService.addExamGroup(examGroup);
-        redirectAttributes.addFlashAttribute("groupAddedSuccess", "Successfully added group to schedule.");
+    public String addGroupToSchedule(@RequestParam Integer scheduleId, @RequestParam String studentYear, @RequestParam String studentBranch) {
+        ExamGroup group = new ExamGroup();
+        group.setScheduleId(scheduleId);
+        group.setStudentYear(studentYear);
+        group.setStudentBranch(studentBranch);
+        seatingService.addExamGroup(group);
         return "redirect:/admin";
     }
 
@@ -116,54 +147,33 @@ public class WebController {
                                          @RequestParam(name = "availableHalls", required = false) List<String> availableHallNumbers,
                                          RedirectAttributes redirectAttributes) {
         seatingService.updateHallAvailability(scheduleId, availableHallNumbers);
-        redirectAttributes.addFlashAttribute("availabilitySuccess", "Hall availability has been updated for the selected schedule.");
+        redirectAttributes.addFlashAttribute("availabilitySuccess", true);
         return "redirect:/admin";
     }
 
+    // --- STANDARD CRUD ACTIONS ---
+
     @PostMapping("/admin/addStudent")
-    public String addStudent(@RequestParam String registerNo, RedirectAttributes redirectAttributes) {
-        Student s = new Student();
-        s.setRegisterNo(registerNo);
-        seatingService.addStudent(s);
-        redirectAttributes.addFlashAttribute("studentMessage", "Student " + registerNo + " added.");
+    public String addStudent(@RequestParam String registerNo) {
+        Student s = new Student(); s.setRegisterNo(registerNo); seatingService.addStudent(s);
         return "redirect:/admin";
     }
 
     @PostMapping("/admin/deleteStudent")
-    public String deleteStudent(@RequestParam String registerNo, RedirectAttributes redirectAttributes) {
+    public String deleteStudent(@RequestParam String registerNo) {
         seatingService.deleteStudent(registerNo);
-        redirectAttributes.addFlashAttribute("studentMessage", "Student " + registerNo + " deleted.");
         return "redirect:/admin";
     }
 
     @PostMapping("/admin/addHall")
-    public String addHall(ExamHall hall, RedirectAttributes redirectAttributes) {
+    public String addHall(ExamHall hall) {
         seatingService.addHall(hall);
-        redirectAttributes.addFlashAttribute("hallMessage", "Hall " + hall.getExamhallNo() + " added.");
         return "redirect:/admin";
     }
 
     @PostMapping("/admin/deleteHall")
-    public String deleteHall(@RequestParam String examhallNo, RedirectAttributes redirectAttributes) {
+    public String deleteHall(@RequestParam String examhallNo) {
         seatingService.deleteHall(examhallNo);
-        redirectAttributes.addFlashAttribute("hallMessage", "Hall " + examhallNo + " deleted.");
-        return "redirect:/admin";
-    }
-
-@PostMapping("/admin/addSchedule")
-    public String addDefaultSchedule(RedirectAttributes redirectAttributes) {
-        ExamSchedule schedule = new ExamSchedule();
-        // Set start time to 5 minutes from now to allow for configuration
-        LocalDateTime startTime = LocalDateTime.now().plusMinutes(5); 
-        // Set end time to 1 hour after start
-        LocalDateTime endTime = startTime.plusHours(1);
-
-        schedule.setSlotStartTime(startTime);
-        schedule.setSlotEndTime(endTime);
-        
-        seatingService.addSchedule(schedule);
-        redirectAttributes.addFlashAttribute("scheduleAddedSuccess", "Default schedule created successfully!");
         return "redirect:/admin";
     }
 }
-

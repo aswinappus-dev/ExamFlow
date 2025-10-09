@@ -1,7 +1,5 @@
 package com.examflow.config;
 
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
@@ -13,12 +11,16 @@ public class SecurityConfig {
         this.adminAuthFilter = adminAuthFilter;
     }
 
-    @Bean
-    public FilterRegistrationBean<AdminAuthFilter> adminFilter() {
-        FilterRegistrationBean<AdminAuthFilter> registrationBean = new FilterRegistrationBean<>();
-        registrationBean.setFilter(adminAuthFilter);
-        // FIX: Apply this filter to the root /admin URL AND all sub-paths
-        registrationBean.addUrlPatterns("/admin", "/admin/*");
-        return registrationBean;
-    }
+    /*
+     * FOR TESTING: This method is commented out to completely disable the AdminAuthFilter.
+     * To re-enable security, uncomment this entire @Bean method.
+     */
+    // @Bean
+    // public FilterRegistrationBean<AdminAuthFilter> adminFilter() {
+    //     FilterRegistrationBean<AdminAuthFilter> registrationBean = new FilterRegistrationBean<>();
+    //     registrationBean.setFilter(adminAuthFilter);
+    //     // Apply this filter to all URLs starting with /admin
+    //     registrationBean.addUrlPatterns("/admin/*", "/admin"); 
+    //     return registrationBean;
+    // }
 }

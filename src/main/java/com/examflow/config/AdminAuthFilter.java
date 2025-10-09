@@ -34,11 +34,11 @@ public class AdminAuthFilter implements Filter {
 
         boolean isAuthenticated = (session != null && session.getAttribute("isAdmin") != null && (Boolean) session.getAttribute("isAdmin"));
 
-        if (isAdminAction && !isAuthenticated) {
+       // if (isAdminAction && !isAuthenticated) {
             // If it's a secure admin action and the user is NOT authenticated, redirect to the homepage.
-            res.sendRedirect("/");
-            return;
-        }
+           // res.sendRedirect("/");
+      //      return;
+      //  }
 
         // NEW SECURITY FIX:
         // If the user IS authenticated and accessing a secure page, add headers to prevent browser caching.
