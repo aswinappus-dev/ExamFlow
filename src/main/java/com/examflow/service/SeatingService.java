@@ -65,11 +65,9 @@ public class SeatingService {
         // Step 2: Fetch and prepare ONLY the eligible students
         Map<String, List<Student>> studentsByBranch = new HashMap<>();
         for (ExamGroup group : requiredGroups) {
-            // FIXED: Use correct getter names getStudentYear() and getStudentBranch()
             String prefix = "CEC" + group.getStudentYear() + group.getStudentBranch();
             List<Student> students = studentRepository.findByRegisterNoStartingWith(prefix);
             Collections.shuffle(students); // Shuffle students within their own branch for fairness
-            // FIXED: Use correct getter name getStudentBranch()
             studentsByBranch.put(group.getStudentBranch(), students);
         }
         int totalStudents = studentsByBranch.values().stream().mapToInt(List::size).sum();
@@ -108,8 +106,8 @@ public class SeatingService {
         allocatedHalls.sort(Comparator.comparing(ExamHall::getBlockno).thenComparing(ExamHall::getExamhallNo));
 
         List<Student> finalStudentList = studentsByBranch.values().stream()
-                                               .flatMap(List::stream)
-                                               .collect(Collectors.toList());
+                                             .flatMap(List::stream)
+                                             .collect(Collectors.toList());
         
         int studentIdx = 0;
         for (int i = 0; i < allocatedHalls.size(); i++) {
@@ -135,20 +133,6 @@ public class SeatingService {
             studentIdx += studentsToPlaceInHall;
         }
         System.out.println("Randomization complete for exam ID " + scheduleId);
-    }
-
-    public boolean isSeatingDataReadyForPublicView() {
-        Optional<ExamSchedule> nextConfirmedExam = findNextConfirmedExam();
-        if (nextConfirmedExam.isEmpty()) {
-            return false; // No confirmed exam, so no data
-        }
-        // Check if the reveal time (1 min before exam) has passed
-        LocalDateTime revealTime = nextConfirmedExam.get().getSlotStartTime().minusMinutes(1);
-        if (LocalDateTime.now().isBefore(revealTime)) {
-            return false; // It's too early, so data is not "available"
-        }
-        // Finally, check if the stud_rand table has any data
-        return studRandRepository.count() > 0;
     }
 
     private void saveArrangement(Student student, ExamHall hall, int seatNo) {
@@ -177,14 +161,32 @@ public class SeatingService {
         }
     }
 
+    // --- NEW METHOD FOR DYNAMIC UI ---
+    public List<ExamHallAvailability> getHallAvailabilitiesForSchedule(Integer scheduleId) {
+        return availabilityRepository.findByScheduleId(scheduleId);
+    }
+
     @Transactional
     public void clearArrangementsForPastExams() {
-        // MODIFIED: Cleanup now runs 5 minutes after an exam ends
+        // FAST TESTING: Clears 5 mins after exam ends
         List<ExamSchedule> pastSchedules = examScheduleRepository.findBySlotEndTimeBefore(LocalDateTime.now().minusMinutes(5));
         if (!pastSchedules.isEmpty()) {
             studRandRepository.deleteAll();
             System.out.println("Cleared arrangements for past exams.");
         }
+    }
+
+    public boolean isSeatingDataReadyForPublicView() {
+        Optional<ExamSchedule> nextConfirmedExam = findNextConfirmedExam();
+        if (nextConfirmedExam.isEmpty()) {
+            return false;
+        }
+        // FAST TESTING: Reveal time is 30 seconds before exam
+        LocalDateTime revealTime = nextConfirmedExam.get().getSlotStartTime().minusSeconds(30);
+        if (LocalDateTime.now().isBefore(revealTime)) {
+            return false;
+        }
+        return studRandRepository.count() > 0;
     }
 
     public Optional<ExamSchedule> findNextConfirmedExam() {
@@ -206,7 +208,6 @@ public class SeatingService {
             result.put("message", "No upcoming exam is scheduled for randomization.");
             return result;
         }
-        // MODIFIED: Reveal time is now 30 seconds before the exam starts
         LocalDateTime revealTime = nextConfirmedExam.get().getSlotStartTime().minusSeconds(30);
         if (LocalDateTime.now().isBefore(revealTime)) {
             result.put("revealTime", revealTime.toString());
@@ -227,13 +228,11 @@ public class SeatingService {
             result.put("message", "No upcoming exam is scheduled for randomization.");
             return result;
         }
-        // MODIFIED: Reveal time is now 30 seconds before the exam starts
         LocalDateTime revealTime = nextConfirmedExam.get().getSlotStartTime().minusSeconds(30);
         if (LocalDateTime.now().isBefore(revealTime)) {
             result.put("revealTime", revealTime.toString());
             return result;
         }
-        // FIXED: Use the new sorted method
         result.put("arrangements", studRandRepository.findByExamhallNoOrderBySeatNoAsc(examhallNo));
         return result;
     }
@@ -269,5 +268,4 @@ public class SeatingService {
         });
     }
 }
-
 

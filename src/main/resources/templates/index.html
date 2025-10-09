@@ -56,6 +56,19 @@
         </div>
     </div>
 
+    <div id="reveal-countdown-widget" class="fixed top-6 right-6 z-50" style="display: none;">
+        <div id="countdown-card" class="glass-card flex items-center justify-center p-4 overflow-hidden w-28 h-28 hover:w-80 rounded-2xl">
+            <div class="timer-display flex-shrink-0 text-center">
+                <span id="reveal-timer" class="text-3xl font-bold text-cyan-300 tabular-nums">00:00</span>
+                <p class="text-xs text-slate-400">Reveal Time</p>
+            </div>
+            <div class="message-display ml-4 flex-shrink-0 opacity-0 transition-opacity duration-300">
+                <p class="text-sm font-semibold text-slate-200 whitespace-nowrap">Seating Data Unlocks in</p>
+                <p id="reveal-time-full" class="text-xs text-slate-400 whitespace-nowrap">00m 00s</p>
+            </div>
+        </div>
+    </div>
+
     <div id="sidebar" class="sidebar fixed top-0 left-0 h-full w-64 glass-card p-6">
         <h2 class="sidebar-logo text-2xl font-bold text-cyan-300 mb-8">ExamFlow</h2>
         <nav class="flex flex-col space-y-4">
@@ -242,6 +255,38 @@
                 startCountdown(invigilatorResult.revealTime);
             }
         });
+
+        const nextExamRevealTime = /*[[|${nextExamRevealTime}|]]*/ null;
+        const revealCountdownWidget = document.getElementById('reveal-countdown-widget');
+
+        if (nextExamRevealTime) {
+            const revealTime = new Date(nextExamRevealTime).getTime();
+            const revealTimerEl = document.getElementById('reveal-timer');
+            const revealTimeFullEl = document.getElementById('reveal-time-full');
+
+            const revealInterval = setInterval(() => {
+                const distance = revealTime - new Date().getTime();
+
+                if (distance > 0) {
+                    revealCountdownWidget.style.display = 'block';
+                    const m = Math.floor((distance / (1000 * 60)) % 60);
+                    const s = Math.floor((distance / 1000) % 60);
+
+                    const mStr = String(m).padStart(2, '0');
+                    const sStr = String(s).padStart(2, '0');
+
+                    revealTimerEl.innerText = `${mStr}:${sStr}`;
+                    revealTimeFullEl.innerText = `${m}m ${s}s`;
+                } else {
+                    revealCountdownWidget.style.display = 'none';
+                    // Optional: reload the page automatically once the timer hits zero
+                    // to show the now-available forms.
+                    window.location.reload();
+                    clearInterval(revealInterval);
+                }
+            }, 1000);
+        }   
+        
     </script>
 </body>
 </html>
