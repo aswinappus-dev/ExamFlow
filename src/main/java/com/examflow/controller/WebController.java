@@ -1,5 +1,6 @@
 package com.examflow.controller;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -149,10 +150,19 @@ public class WebController {
         return "redirect:/admin";
     }
 
-    @PostMapping("/admin/addSchedule")
-    public String addSchedule(ExamSchedule schedule, RedirectAttributes redirectAttributes) {
+@PostMapping("/admin/addSchedule")
+    public String addDefaultSchedule(RedirectAttributes redirectAttributes) {
+        ExamSchedule schedule = new ExamSchedule();
+        // Set start time to 5 minutes from now to allow for configuration
+        LocalDateTime startTime = LocalDateTime.now().plusMinutes(5); 
+        // Set end time to 1 hour after start
+        LocalDateTime endTime = startTime.plusHours(1);
+
+        schedule.setSlotStartTime(startTime);
+        schedule.setSlotEndTime(endTime);
+        
         seatingService.addSchedule(schedule);
-        redirectAttributes.addFlashAttribute("scheduleMessage", "New exam schedule added.");
+        redirectAttributes.addFlashAttribute("scheduleAddedSuccess", "Default schedule created successfully!");
         return "redirect:/admin";
     }
 }
