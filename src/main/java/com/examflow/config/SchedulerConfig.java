@@ -29,9 +29,9 @@ public class SchedulerConfig {
             LocalDateTime now = LocalDateTime.now();
             long minutesUntilExam = ChronoUnit.MINUTES.between(now, nextExam.getSlotStartTime());
             
-            if (minutesUntilExam == 3) { // 3 minutes for testing
-                System.out.println("SCHEDULER: Triggering randomization for exam at: " + nextExam.getSlotStartTime());
-                seatingService.performRandomization();
+        if (minutesUntilExam == 1) { 
+            System.out.println("SCHEDULER: Triggering randomization 1 minute before exam at: " + nextExam.getSlotStartTime());
+            seatingService.performRandomization();
             }
         }
     }
