@@ -17,8 +17,8 @@ public class SecurityConfig {
     public FilterRegistrationBean<AdminAuthFilter> adminFilter() {
         FilterRegistrationBean<AdminAuthFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(adminAuthFilter);
-        // Apply this filter to all URLs starting with /admin
-        registrationBean.addUrlPatterns("/admin/*");
+        // FIX: Apply this filter to the root /admin URL AND all sub-paths
+        registrationBean.addUrlPatterns("/admin", "/admin/*");
         return registrationBean;
     }
 }
