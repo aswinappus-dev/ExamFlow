@@ -46,7 +46,7 @@ MySQL Server 8 or higher
 Installation
 Clone the repository:
 
-git clone [https://github.com/YOUR_USERNAME/ExamFlow-Seating-Arrangement.git](https://github.com/YOUR_USERNAME/ExamFlow-Seating-Arrangement.git)
+git clone [https://github.com/aswinaappus-dev/ExamFlow-Seating-Arrangement.git](https://github.com/YOUR_USERNAME/ExamFlow-Seating-Arrangement.git)
 cd ExamFlow-Seating-Arrangement
 
 Setup the Database:
