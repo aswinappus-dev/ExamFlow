@@ -124,14 +124,17 @@
                 <div class="glass-card p-8 max-w-md mx-auto">
                     <h2 class="text-3xl font-bold text-center text-cyan-300 mb-6">Find Your Seat</h2>
                     <form th:action="@{/student}" method="post">
-                        <input type="text" name="registerNo" class="w-full bg-slate-800 p-3 mb-4 rounded-lg" placeholder="e.g., CEC22AD001" required>
+                        <input list="student-reg-list" name="registerNo" class="w-full bg-slate-800 p-3 mb-4 rounded-lg" placeholder="Start typing your register no..." required>
+                        <datalist id="student-reg-list">
+                            <option th:each="student : ${allStudents}" th:value="${student.registerNo}"></option>
+                        </datalist>
                         <button type="submit" class="btn-3d bg-cyan-500 w-full">Confirm</button>
                     </form>
                     <div th:if="${studentResult}" class="mt-8 text-center p-6 bg-slate-900/50 rounded-lg">
                         <p th:if="${studentResult.message}" th:text="${studentResult.message}" class="text-lg text-amber-400"></p>
                         <div th:if="${studentResult.arrangement}">
                              <h3 class="text-slate-400">Hall: <strong class="text-2xl text-cyan-300" th:text="${studentResult.arrangement.examhallNo} + ' (' + ${studentResult.arrangement.blockno} + ')'"></strong></h3>
-                             <h3 class="text-slate-400 mt-2">Seat: <strong class="text-2xl text-cyan-300" th:text="${studentResult.arrangement.id}"></strong></h3>
+                             <h3 class="text-slate-400 mt-2">Seat: <strong class="text-2xl text-cyan-300" th:text="${studentResult.arrangement.seatNo}"></strong></h3>
                         </div>
                         <button onclick="showView('home-view')" class="mt-6 text-sm text-cyan-400 hover:underline">Return to Home</button>
                     </div>
@@ -143,15 +146,14 @@
                     <h2 class="text-3xl font-bold text-center text-blue-400 mb-6">Invigilator Dashboard</h2>
                     
                     <div th:if="${invigilatorResult == null or (invigilatorResult.arrangements == null and invigilatorResult.revealTime == null)}">
-                        <div class="mb-4">
-                            <label class="block text-slate-400 mb-2">1. Select Block</label>
-                            <select id="block-selector" class="w-full bg-slate-800 p-3 text-white rounded-lg">
-                                <option value="">-- Choose a Block --</option>
-                                <option th:each="block : ${hallsByBlock.keySet()}" th:value="${block}" th:text="${block}"></option>
+                        <form id="invigilator-form" th:action="@{/invigilator}" method="post" class="space-y-4">
+                            <select name="examhallNo" class="w-full bg-slate-800 p-3 text-white rounded-lg">
+                                <option value="">-- Choose a Hall --</option>
+                                <optgroup th:each="blockEntry : ${hallsByBlock}" th:label="${blockEntry.key}">
+                                    <option th:each="hall : ${blockEntry.value}" th:value="${hall.examhallNo}" th:text="${hall.examhallNo}"></option>
+                                </optgroup>
                             </select>
-                        </div>
-                        <form id="invigilator-form" th:action="@{/invigilator}" method="post" class="hidden">
-                            <input type="hidden" id="selected-hall-input" name="examhallNo">
+                            <button type="submit" class="btn-3d bg-blue-600 w-full">Fetch Arrangement</button>
                         </form>
                     </div>
 
@@ -189,17 +191,6 @@
         </main>
     </div>
 
-    <div id="hall-picker-modal">
-        <div class="picker-container">
-            <h3 class="text-center font-semibold text-slate-400 mb-4">2. Select Hall</h3>
-            <div class="relative flex-grow">
-                <div id="picker-wheel" class="picker-wheel"></div>
-                <div class="picker-indicator"></div>
-            </div>
-            <button id="confirm-hall-button" class="mt-4 btn-3d bg-blue-600 w-full text-base py-2 px-4">Confirm</button>
-        </div>
-    </div>
-
     <script th:inline="javascript">
         // --- Global Constants ---
         const contentArea = document.getElementById('content-area');
@@ -207,14 +198,6 @@
         const sidebar = document.getElementById('sidebar');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
         const hamburger = document.getElementById('hamburger-button');
-        const hallsByBlock = /*[[|${hallsByBlock}|]]*/ {};
-        const blockSelector = document.getElementById('block-selector');
-        const pickerModal = document.getElementById('hall-picker-modal');
-        const pickerWheel = document.getElementById('picker-wheel');
-        const confirmHallBtn = document.getElementById('confirm-hall-button');
-        const invigilatorForm = document.getElementById('invigilator-form');
-        const selectedHallInput = document.getElementById('selected-hall-input');
-        let selectedHall = null;
         let countdownInterval;
 
         // --- Global Functions ---
@@ -258,57 +241,7 @@
                 document.getElementById('timer-seconds').innerText = String(s).padStart(2, '0');
             }, 1000);
         }
-
-        function openHallPicker(blockName) {
-            const halls = hallsByBlock[blockName];
-            if (!halls || halls.length === 0) return;
-            pickerWheel.innerHTML = '';
-            halls.forEach(hall => {
-                const item = document.createElement('div');
-                item.classList.add('picker-item');
-                item.textContent = hall.examhallNo;
-                pickerWheel.appendChild(item);
-            });
-            gsap.to(pickerModal, { autoAlpha: 1, duration: 0.3 });
-            setTimeout(updateSelectedHall, 100);
-        }
-
-        function updateSelectedHall() {
-            const items = Array.from(pickerWheel.children);
-            const wheelCenter = pickerWheel.scrollTop + pickerWheel.clientHeight / 2;
-            let closestItem = null, minDistance = Infinity;
-            items.forEach(item => {
-                const itemCenter = item.offsetTop - pickerWheel.offsetTop + item.clientHeight / 2;
-                const distance = Math.abs(wheelCenter - itemCenter);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestItem = item;
-                }
-                item.classList.remove('is-selected');
-            });
-            if (closestItem) {
-                closestItem.classList.add('is-selected');
-                selectedHall = closestItem.textContent;
-            }
-        }
-
-        // --- Event Listeners ---
-        blockSelector.addEventListener('change', () => {
-            const selectedBlock = blockSelector.value;
-            if (selectedBlock) openHallPicker(selectedBlock);
-        });
-        pickerWheel.addEventListener('scroll', updateSelectedHall);
-        confirmHallBtn.addEventListener('click', () => {
-            if (selectedHall) {
-                selectedHallInput.value = selectedHall;
-                invigilatorForm.submit();
-            }
-            gsap.to(pickerModal, { autoAlpha: 0, duration: 0.3 });
-        });
-        pickerModal.addEventListener('click', (e) => {
-             if (e.target === pickerModal) gsap.to(pickerModal, { autoAlpha: 0, duration: 0.3 });
-        });
-
+        
         // --- Page Initialization ---
         document.addEventListener('DOMContentLoaded', function() {
             const initialView = /*[[|${initialView}|]]*/ 'home-view';
@@ -327,4 +260,3 @@
     </script>
 </body>
 </html>
-

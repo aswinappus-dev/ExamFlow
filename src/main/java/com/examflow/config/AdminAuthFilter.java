@@ -25,20 +25,31 @@ public class AdminAuthFilter implements Filter {
         HttpSession session = req.getSession(false);
 
         String requestURI = req.getRequestURI();
+        
+        // Define which pages are part of the public-facing login flow
+        boolean isLoginPage = requestURI.equals("/admin/login");
 
-        // Check if the request is for an admin page (but not the login/verify pages themselves)
-        boolean isAdminAction = requestURI.startsWith("/admin/") && 
-                                !requestURI.equals("/admin/login");
+        // Define which pages are secure admin actions
+        boolean isAdminAction = requestURI.startsWith("/admin") && !isLoginPage;
 
         boolean isAuthenticated = (session != null && session.getAttribute("isAdmin") != null && (Boolean) session.getAttribute("isAdmin"));
 
         if (isAdminAction && !isAuthenticated) {
-            // If it's an admin action and the user is not authenticated, redirect to home.
+            // If it's a secure admin action and the user is NOT authenticated, redirect to the homepage.
             res.sendRedirect("/");
             return;
         }
 
-        // If checks pass, continue with the request.
+        // NEW SECURITY FIX:
+        // If the user IS authenticated and accessing a secure page, add headers to prevent browser caching.
+        if (isAuthenticated && isAdminAction) {
+            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
+            res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+            res.setHeader("Expires", "0"); // Proxies.
+        }
+
+        // If all checks pass, continue with the original request.
         chain.doFilter(request, response);
     }
 }
+

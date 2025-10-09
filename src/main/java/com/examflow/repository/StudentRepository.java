@@ -7,13 +7,16 @@ import org.springframework.stereotype.Repository;
 
 import com.examflow.model.Student;
 
-// JpaRepository gives us all the standard database methods for the Student entity.
-// The primary key of the Student table is a String (register_no).
 @Repository
 public interface StudentRepository extends JpaRepository<Student, String> {
 
-    // Spring Data JPA is smart. By naming a method like this, it will automatically
-    // create a query to find all students whose register number contains a specific string.
-    // We will use this to find all students of a certain branch, e.g., "AD", "CS".
     List<Student> findByRegisterNoContaining(String branchCode);
+
+    /**
+     * Finds all students whose register number starts with a specific prefix.
+     * This is used to find students by year and branch (e.g., "CEC22AD").
+     * @param prefix The year and branch code prefix.
+     * @return A list of matching Student entities.
+     */
+    List<Student> findByRegisterNoStartingWith(String prefix);
 }

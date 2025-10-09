@@ -1,5 +1,7 @@
 package com.examflow.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -8,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.examflow.model.ExamGroup;
 import com.examflow.model.ExamHall;
 import com.examflow.model.ExamSchedule;
 import com.examflow.model.Student;
@@ -25,6 +28,7 @@ public class WebController {
     public String home(Model model) {
         model.addAttribute("initialView", "home-view");
         model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
+        model.addAttribute("allStudents", seatingService.getAllStudents());
         return "index";
     }
 
@@ -32,6 +36,7 @@ public class WebController {
     public String handleStudentRequest(@RequestParam String registerNo, Model model) {
         model.addAttribute("studentResult", seatingService.getStudentArrangement(registerNo));
         model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
+        model.addAttribute("allStudents", seatingService.getAllStudents());
         model.addAttribute("initialView", "student-view");
         return "index";
     }
@@ -40,6 +45,7 @@ public class WebController {
     public String handleInvigilatorRequest(@RequestParam String examhallNo, Model model) {
         model.addAttribute("invigilatorResult", seatingService.getHallArrangement(examhallNo));
         model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
+        model.addAttribute("allStudents", seatingService.getAllStudents());
         model.addAttribute("selectedHall", examhallNo);
         model.addAttribute("initialView", "invigilator-view");
         return "index";
@@ -56,11 +62,12 @@ public class WebController {
             return "admin_dashboard";
         } else {
             model.addAttribute("hallsByBlock", seatingService.getHallsGroupedByBlock());
+            model.addAttribute("allStudents", seatingService.getAllStudents());
             model.addAttribute("initialView", "admin-login-view");
             return "index";
         }
     }
-    
+
     @PostMapping("/admin/login")
     public String handleAdminLogin(@RequestParam String email, @RequestParam String code, HttpSession session, RedirectAttributes redirectAttributes) {
         if (!seatingService.verifyAdminCredentials(session, email, code)) {
@@ -68,14 +75,33 @@ public class WebController {
         }
         return "redirect:/admin";
     }
-    
+
     @PostMapping("/admin/logout")
-    public String adminLogout(HttpSession session) { session.invalidate(); return "redirect:/"; }
-    
+    public String adminLogout(HttpSession session) {
+        session.invalidate();
+        return "redirect:/";
+    }
+
     @PostMapping("/admin/confirmRandomization")
     public String confirmRandomization(@RequestParam Integer scheduleId, RedirectAttributes redirectAttributes) {
         seatingService.confirmRandomization(scheduleId);
         redirectAttributes.addFlashAttribute("confirmationSuccess", true);
+        return "redirect:/admin";
+    }
+
+    @PostMapping("/admin/addGroupToSchedule")
+    public String addGroupToSchedule(ExamGroup examGroup, RedirectAttributes redirectAttributes) {
+        seatingService.addExamGroup(examGroup);
+        redirectAttributes.addFlashAttribute("groupAddedSuccess", "Successfully added group to schedule.");
+        return "redirect:/admin";
+    }
+    
+    @PostMapping("/admin/updateHallAvailability")
+    public String updateHallAvailability(@RequestParam("scheduleId") Integer scheduleId,
+                                         @RequestParam(name = "availableHalls", required = false) List<String> availableHallNumbers,
+                                         RedirectAttributes redirectAttributes) {
+        seatingService.updateHallAvailability(scheduleId, availableHallNumbers);
+        redirectAttributes.addFlashAttribute("availabilitySuccess", "Hall availability has been updated for the selected schedule.");
         return "redirect:/admin";
     }
 

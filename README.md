@@ -97,5 +97,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 <<<<<<< HEAD
 This project was developed by Aswin.
 =======
-This project was developed by Aswin.
+This project was developed by Aswin Appus.
 >>>>>>> 1386588417478fe929c089b33fc34e79a2bc2376

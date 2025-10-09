@@ -16,24 +16,16 @@
     </style>
 </head>
 <body>
-
-    <div id="confirmation-overlay" class="hidden">
-        <div id="confirmation-box">
-            <svg class="lg-checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-                <circle class="lg-checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
-                <path class="lg-checkmark__check" stroke="#4ade80" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
-            </svg>
-        </div>
-    </div>
-
     <div class="main-container p-4 sm:p-8">
         <div class="glass-card p-8 max-w-6xl mx-auto">
             <div class="flex justify-between items-center mb-8">
                 <h2 class="text-3xl font-bold text-cyan-300">Admin Dashboard</h2>
                 <form th:action="@{/admin/logout}" method="post"><button type="submit" class="text-sm text-slate-400 hover:text-white">Logout</button></form>
             </div>
+    
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- LEFT COLUMN: Manage Students & Halls -->
                 <div class="md:col-span-1 space-y-8">
                     <div>
                         <h3 class="text-xl font-semibold mb-4 text-cyan-400">Manage Students</h3>
@@ -42,7 +34,6 @@
                             <button type="submit" class="btn-3d bg-green-600 w-full text-sm py-2 px-4">Add Student</button>
                         </form>
                         <form th:action="@{/admin/deleteStudent}" method="post" class="space-y-4 p-4 mt-4 bg-slate-900/50 rounded-lg">
-                            <!-- UPDATED: Searchable input for student deletion -->
                             <input list="student-list" name="registerNo" placeholder="Type to search for student..." class="w-full bg-slate-800 p-2 rounded">
                             <datalist id="student-list">
                                 <option th:each="student : ${allStudents}" th:value="${student.registerNo}"></option>
@@ -59,12 +50,10 @@
                             <button type="submit" class="btn-3d bg-green-600 w-full text-sm py-2 px-4">Add Hall</button>
                         </form>
                          <form th:action="@{/admin/deleteHall}" method="post" class="space-y-4 p-4 mt-4 bg-slate-900/50 rounded-lg">
-                            <!-- Two-step deletion process: Select block first -->
                             <select id="delete-block-selector" class="w-full bg-slate-800 p-2 rounded mb-2">
                                 <option value="">-- 1. Select Block --</option>
                                 <option th:each="block : ${hallsByBlock.keySet()}" th:value="${block}" th:text="${block}"></option>
                             </select>
-                            <!-- UPDATED: Searchable input for hall deletion (options filtered by JS) -->
                             <input list="hall-list" name="examhallNo" id="delete-hall-input" placeholder="-- 2. Type or Select Hall --" class="w-full bg-slate-800 p-2 rounded" disabled>
                             <datalist id="hall-list"></datalist>
                             <button type="submit" class="btn-3d bg-red-600 w-full text-sm py-2 px-4">Delete Hall</button>
@@ -72,6 +61,7 @@
                     </div>
                 </div>
 
+                <!-- RIGHT COLUMN: Schedules and Group Management -->
                 <div class="md:col-span-2 space-y-8">
                     <div>
                         <h3 class="text-xl font-semibold mb-4 text-cyan-400">Manage Schedules</h3>
@@ -81,6 +71,36 @@
                             <button type="submit" class="btn-3d bg-green-600 w-full text-sm py-2 px-4">Add Schedule</button>
                         </form>
                     </div>
+
+                    <!-- NEW FEATURE: Assign Groups to Exam -->
+                    <div class="p-4 bg-slate-900/50 rounded-lg">
+                        <h4 class="font-semibold mb-4 text-purple-400">Assign Student Groups to an Exam</h4>
+                        <form th:action="@{/admin/addGroupToSchedule}" method="post" class="space-y-4" th:if="${!unconfirmedExams.isEmpty()}">
+                            <select name="scheduleId" class="w-full bg-slate-800 p-2 rounded" required>
+                                <option value="">-- 1. Select Unconfirmed Exam Slot --</option>
+                                <option th:each="exam : ${unconfirmedExams}" th:value="${exam.id}" th:text="'Slot: ' + ${#temporals.format(exam.slotStartTime, 'dd-MMM HH:mm')}"></option>
+                            </select>
+                            <div class="flex gap-4">
+                                <select name="studentYear" class="w-full bg-slate-800 p-2 rounded" required>
+                                    <option value="">-- 2. Select Year --</option>
+                                    <option value="22">2022 Admission</option>
+                                    <option value="23">2023 Admission</option>
+                                    <option value="24">2024 Admission</option>
+                                </select>
+                                <select name="studentBranch" class="w-full bg-slate-800 p-2 rounded" required>
+                                    <option value="">-- 3. Select Branch --</option>
+                                    <option value="CS">CS</option>
+                                    <option value="AD">AD</option>
+                                    <option value="EC">EC</option>
+                                    <option value="EE">EE</option>
+                                    <!-- Add other branches as needed -->
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-3d bg-purple-600 w-full text-sm py-2 px-4">Add Group</button>
+                        </form>
+                        <p th:if="${unconfirmedExams.isEmpty()}" class="text-slate-500">Add a new schedule to assign groups.</p>
+                    </div>
+                    
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
                         <div class="p-4 bg-slate-900/50 rounded-lg">
                              <h4 class="font-semibold mb-4 text-yellow-400">Confirm Upcoming Exams</h4>
@@ -112,13 +132,54 @@
             </div>
         </div>
     </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Column: Manage Students & Halls -->
+                <div class="lg:col-span-1 space-y-8">
+                    <div class="form-section">
+                        <h3 class="text-xl font-semibold mb-4 text-cyan-400">Manage Students</h3>
+                        <!-- Student Forms Here -->
+                    </div>
+                    <div class="form-section">
+                        <h3 class="text-xl font-semibold mb-4 text-cyan-400">Manage Halls</h3>
+                        <!-- Hall Forms Here -->
+                    </div>
+                </div>
+
+                <!-- Right Column: Schedules, Groups, and Availability -->
+                <div class="lg:col-span-2 space-y-8">
+                    <div class="form-section">
+                        <h3 class="text-xl font-semibold mb-4 text-cyan-400">Manage Schedules & Groups</h3>
+                        <!-- Schedule & Group Forms Here -->
+                    </div>
+
+                    <!-- NEW SECTION: Manage Hall Availability -->
+                    <div class="form-section">
+                        <h3 class="text-xl font-semibold mb-4 text-orange-400">Manage Hall Availability</h3>
+                        <p class="text-sm text-slate-400 mb-4">Select an unconfirmed exam, then uncheck halls to mark them as UNAVAILABLE for that specific exam.</p>
+                        <form th:action="@{/admin/updateHallAvailability}" method="post">
+                            <select name="scheduleId" id="availability-schedule-selector" class="w-full bg-slate-800 p-3 rounded mb-4" required>
+                                <option value="">-- 1. Select an Unconfirmed Exam --</option>
+                                <option th:each="exam : ${unconfirmedExams}" th:value="${exam.id}" th:text="'Slot: ' + ${#temporals.format(exam.slotStartTime, 'dd-MMM HH:mm')}"></option>
+                            </select>
+                            
+                            <div id="hall-availability-list" class="space-y-3 max-h-60 overflow-y-auto p-4 bg-slate-900/50 rounded-lg hidden">
+                                <!-- Hall checkboxes will be injected here by JavaScript -->
+                            </div>
+                            
+                            <button type="submit" class="btn-3d bg-orange-600 w-full mt-4">Update Availability</button>
+                        </form>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                       <!-- Confirmation and Timer Panels Here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script th:inline="javascript">
-        // Data from backend
         const hallsByBlock = /*[[|${hallsByBlock}|]]*/ {};
-        const allStudents = /*[[|${allStudents}|]]*/ []; 
-        
-        // Hall Deletion Logic
         const deleteBlockSelector = document.getElementById('delete-block-selector');
         const deleteHallInput = document.getElementById('delete-hall-input');
         const hallDatalist = document.getElementById('hall-list');
@@ -129,7 +190,6 @@
             deleteHallInput.value = '';
             if (selectedBlock && hallsByBlock[selectedBlock]) {
                 deleteHallInput.disabled = false;
-                // Populate datalist with hall numbers from the selected block
                 hallsByBlock[selectedBlock].forEach(hall => {
                     const option = document.createElement('option');
                     option.value = hall.examhallNo;
@@ -140,10 +200,6 @@
             }
         });
 
-        // Student Deletion Logic (Datalist is populated on page load by Thymeleaf)
-        // No extra JS needed here, but the data needs to be provided by the controller.
-
-        // Admin Countdown Timer
         const nextConfirmedExam = /*[[|${nextConfirmedExam}|]]*/ null;
         if (nextConfirmedExam) {
             const randomizationTime = new Date(nextConfirmedExam.slotStartTime).getTime() - (3 * 60 * 1000); // 3 minutes before
@@ -159,20 +215,7 @@
                 }
             }, 1000);
         }
-        
-        // Confirmation Animation Trigger
-        document.addEventListener('DOMContentLoaded', () => {
-            const confirmationSuccess = /*[[|${confirmationSuccess}|]]*/ false;
-            if (confirmationSuccess) {
-                const overlay = document.getElementById('confirmation-overlay');
-                overlay.classList.remove('hidden');
-                setTimeout(() => overlay.classList.add('visible'), 10);
-                setTimeout(() => {
-                    overlay.classList.remove('visible');
-                    setTimeout(() => overlay.classList.add('hidden'), 300);
-                }, 2000);
-            }
-        });
     </script>
 </body>
 </html>
+
