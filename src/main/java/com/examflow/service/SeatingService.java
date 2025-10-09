@@ -179,7 +179,8 @@ public class SeatingService {
 
     @Transactional
     public void clearArrangementsForPastExams() {
-        List<ExamSchedule> pastSchedules = examScheduleRepository.findBySlotEndTimeBefore(LocalDateTime.now().minusHours(4));
+        // MODIFIED: Cleanup now runs 5 minutes after an exam ends
+        List<ExamSchedule> pastSchedules = examScheduleRepository.findBySlotEndTimeBefore(LocalDateTime.now().minusMinutes(5));
         if (!pastSchedules.isEmpty()) {
             studRandRepository.deleteAll();
             System.out.println("Cleared arrangements for past exams.");
@@ -205,7 +206,8 @@ public class SeatingService {
             result.put("message", "No upcoming exam is scheduled for randomization.");
             return result;
         }
-        LocalDateTime revealTime = nextConfirmedExam.get().getSlotStartTime().minusMinutes(1);
+        // MODIFIED: Reveal time is now 30 seconds before the exam starts
+        LocalDateTime revealTime = nextConfirmedExam.get().getSlotStartTime().minusSeconds(30);
         if (LocalDateTime.now().isBefore(revealTime)) {
             result.put("revealTime", revealTime.toString());
             return result;
@@ -225,7 +227,8 @@ public class SeatingService {
             result.put("message", "No upcoming exam is scheduled for randomization.");
             return result;
         }
-        LocalDateTime revealTime = nextConfirmedExam.get().getSlotStartTime().minusMinutes(1);
+        // MODIFIED: Reveal time is now 30 seconds before the exam starts
+        LocalDateTime revealTime = nextConfirmedExam.get().getSlotStartTime().minusSeconds(30);
         if (LocalDateTime.now().isBefore(revealTime)) {
             result.put("revealTime", revealTime.toString());
             return result;
@@ -266,4 +269,5 @@ public class SeatingService {
         });
     }
 }
+
 
