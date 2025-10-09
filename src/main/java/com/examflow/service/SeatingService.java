@@ -135,6 +135,20 @@ public class SeatingService {
         System.out.println("Randomization complete for exam ID " + scheduleId);
     }
 
+        public boolean isSeatingDataAvailable() {
+        Optional<ExamSchedule> nextConfirmedExam = findNextConfirmedExam();
+        if (nextConfirmedExam.isEmpty()) {
+            return false; // No confirmed exam, so no data
+        }
+        // Check if the reveal time (1 min before exam) has passed
+        LocalDateTime revealTime = nextConfirmedExam.get().getSlotStartTime().minusMinutes(1);
+        if (LocalDateTime.now().isBefore(revealTime)) {
+            return false; // It's too early, so data is not "available"
+        }
+        // Finally, check if the stud_rand table has any data
+        return studRandRepository.count() > 0;
+    }
+
     private void saveArrangement(Student student, ExamHall hall, int seatNo) {
         StudRand arrangement = new StudRand();
         arrangement.setRegisterNo(student.getRegisterNo());

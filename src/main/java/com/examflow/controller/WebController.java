@@ -24,6 +24,19 @@ public class WebController {
     @Autowired
     private SeatingService seatingService;
 
+        @GetMapping("/about")
+    public String aboutPage() {
+        return "about"; // This tells Spring to render about.html
+    }
+
+    // FIX: Add a GET mapping to handle the /support URL
+    @GetMapping("/support")
+    public String supportPage() {
+        return "support"; // This tells Spring to render support.html
+    }
+
+
+
     @GetMapping("/")
     public String home(Model model) {
         model.addAttribute("initialView", "home-view");
